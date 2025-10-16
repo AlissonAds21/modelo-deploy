@@ -1,0 +1,154 @@
+/* Reseta margens, paddings e define box-sizing para todos os elementos */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Estilo base do corpo da página */
+body {
+    font-family: Arial, sans-serif; /* Fonte legível */
+    background-color: #e6f2ff; /* Fundo azul claro suave */
+    color: #333; /* Cor padrão do texto */
+}
+
+/* Estiliza o contêiner do ícone "Home" */
+.home-icon {
+    display: flex; /* Usa flexbox para alinhar itens */
+    align-items: center; /* Alinha verticalmente ao centro */
+    margin: 20px 0 0 20px; /* Margem superior e esquerda */
+}
+
+/* Estiliza o link "Home" como um bloco flexível com ícone e texto alinhados, sem sublinhado e com destaque visual */
+.home-link {
+    text-decoration: none; /* Remove o sublinhado padrão dos links */
+    display: flex; /* Ativa layout flexível para alinhar ícone e texto lado a lado */
+    align-items: center; /* Centraliza verticalmente o conteúdo do link */
+    color: #4169e1; /* Define a cor do texto do link (azul royal) */
+    font-weight: bold; /* Deixa o texto em negrito */
+    font-size: 1.2em; /* Aumenta o tamanho da fonte em 20% em relação ao padrão */
+}
+
+/* Estiliza o ícone SVG dentro do link "Home" */
+.home-svg {
+    fill: #4169e1; /* Cor do ícone igual ao texto */
+    margin-right: 8px; /* Espaço entre ícone e texto */
+}
+
+/* Contêiner principal que centraliza o conteúdo */
+.container {
+    max-width: 900px; /* Largura máxima responsiva */
+    margin: 0 auto; /* Centraliza horizontalmente */
+    padding: 20px; /* Espaçamento interno */
+}
+
+/* Cabeçalho com logo e título */
+header {
+    display: flex; /* Alinha logo e título lado a lado */
+    justify-content: space-between; /* Empurra logo para esquerda e título para direita */
+    align-items: center; /* Alinha verticalmente ao centro */
+    background-color: #9c9cdd; /* Fundo roxo claro */
+    padding: 20px; /* Espaçamento interno */
+    border-bottom: 5px solid #000; /* Borda inferior preta grossa */
+}
+
+/* Estiliza a imagem do logo */
+header img {
+    width: 120px;
+    height: 70px;
+    object-fit: cover; /* Garante que a imagem preencha o espaço sem distorcer */
+}
+
+/* Estiliza o título no cabeçalho */
+header h1 {
+    color: #d4af37; /* Cor dourada */
+    font-size: 2.5em;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3); /* Sombra para destaque */
+}
+
+/* Área principal do formulário */
+main {
+    background-color: white; /* Fundo branco */
+    border-radius: 10px; /* Cantos arredondados */
+    box-shadow: 0 0 15px rgba(0,0,0,0.2); /* Sombra suave */
+    padding: 30px; /* Espaçamento interno */
+    margin-top: 20px; /* Espaço acima do main */
+    border: 5px solid #3b5998; /* Borda azul escura */
+}
+
+/* Formulário ocupa toda a largura do contêiner */
+form {
+    width: 100%;
+}
+
+/* Título do formulário (h2) */
+h2 {
+    color: white; /* Texto branco */
+    background-color: #3b5998; /* Fundo azul escuro */
+    padding: 15px; /* Espaçamento interno */
+    border-radius: 5px; /* Cantos levemente arredondados */
+    margin-bottom: 20px; /* Espaço abaixo */
+    text-align: center; /* Centraliza o texto */
+}
+
+/* Agrupamento de cada campo do formulário */
+.form-group {
+    margin-bottom: 15px; /* Espaço entre campos */
+}
+
+/* Rótulos dos campos */
+label {
+    display: block; /* Ocupa toda a linha */
+    margin-bottom: 5px; /* Espaço abaixo do rótulo */
+    font-weight: bold; /* Negrito */
+    color: #333; /* Cor escura */
+}
+
+/* Estiliza todos os campos de entrada */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="file"] {
+    width: 100%; /* Largura total do contêiner */
+    padding: 10px; /* Espaçamento interno */
+    border: 1px solid #ccc; /* Borda cinza clara */
+    border-radius: 5px; /* Cantos arredondados */
+    font-size: 16px; /* Tamanho legível */
+}
+
+/* Botão primário (Cadastrar) */
+.btn-primary {
+    background-color: #3b5998; /* Azul escuro */
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer; /* Muda o cursor ao passar */
+    font-size: 16px;
+    margin-right: 10px; /* Espaço à direita (para o botão secundário) */
+}
+
+/* Botão secundário (Limpar) */
+.btn-secondary {
+    background-color: #666; /* Cinza escuro */
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* Link para login */
+.login-link {
+    text-align: center; /* Centraliza o texto */
+    margin-top: 20px; /* Espaço acima */
+    color: #3b5998; /* Azul escuro */
+}
+
+/* Estiliza o link dentro do parágrafo de login */
+.login-link a {
+    color: #3b5998;
+    text-decoration: underline; /* Sublinhado visível */
+}

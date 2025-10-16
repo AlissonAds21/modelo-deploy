@@ -1,0 +1,233 @@
+/* Estilo global */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Cabeçalho principal */
+header {
+    background-color: #587bfa;
+    color: white;
+    padding: 20px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Links sociais */
+.social-icons a {
+    text-decoration: none;
+    color: #001F5B;
+    font-weight: bold;
+    margin:  10px;
+}
+
+/* Logo da empresa */
+.logo {
+    width: 160px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Container centralizado para menu */
+.menu-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 10px;
+    background-color: #fff;
+}
+
+/* Lista de navegação */
+.menu-container nav ul {
+    display: flex;
+    gap: 30px;
+    list-style: none;
+    padding: 10px 0;
+    justify-content: center;
+    margin: 0;
+}
+
+/* Links do menu */
+.menu-container nav ul li a {
+    text-decoration: none;
+    color: #001F5B;
+    font-weight: bold;
+    font-size: 16px;
+    transition: color 0.3s ease;
+}
+
+/* Hover nos links do menu */
+.menu-container nav ul li a:hover {
+    color: #00153d;
+}
+
+/* Campo de pesquisa */
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.search-box span {
+    color: #999;
+    font-size: 18px;
+}
+
+/* Galerias de produtos */
+.galeria,
+.galeria-produtos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    padding: 10px;
+}
+
+/* Imagens das galerias */
+.galeria img,
+.galeria-produtos img {
+    width: 160px;
+    height: 120px;
+    object-fit: contain;
+    object-position: center; /* Garante que o centro da imagem seja mostrado */
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Efeito ao passar o mouse nas imagens */
+.galeria img:hover,
+.galeria-produtos img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Centralização de conteúdo */
+.centralizado {
+    text-align: center;
+    margin-top: 50px;
+}
+
+/* Detalhes do produto */
+.detalhes {
+    margin: 20px;
+}
+
+/* Formulários */
+form {
+    display: inline-block;
+    text-align: left;
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+input {
+    display: block;
+    margin-bottom: 10px;
+    padding: 5px;
+    width: 250px;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px;
+    width: 100%;
+}
+
+/* ===============================================
+   ✅ LAYOUT DE USUÁRIO LOGADO (NOVO E LIMPO)
+   =============================================== */
+
+/* Container principal - layout horizontal */
+.logged-user-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background-color: #f5f5f5;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Imagem de perfil - formato retrato 3x4 com cantos arredondados */
+.user-avatar {
+    width: 80px;
+    height: 106.67px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid #ddd;
+    background-color: #eee;
+}
+
+.profile-pic {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Área à direita: botões e status */
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 180px;
+}
+
+/* Linha dos botões */
+.buttons-row {
+    display: flex;
+    gap: 10px;
+}
+
+.buttons-row button {
+    flex: 1;
+    background-color: #3b5998;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.buttons-row button:hover {
+    background-color: #2d4373;
+}
+
+/* Área de status e nome */
+.user-status {
+    text-align: center;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #ddd;
+    width: 100%;
+}
+
+.user-status span {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.user-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Ícone de ampulheta (GIF ou SVG) */
+.hourglass-icon {
+    width: 18px;
+    height: auto;
+    vertical-align: middle;
+    margin-right: 6px;
+}

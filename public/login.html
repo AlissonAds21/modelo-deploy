@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nome do Projeto - Login</title>
+    <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+    <!-- Ícone Home (mesmo do cadastro) -->
+    <div class="home-icon">
+        <a href="index.html" class="home-link">
+            <svg class="home-svg" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24">
+                <path d="M12 3l10 9h-3v9h-6v-6h-2v6H5v-9H2z"/>
+            </svg>
+            Home
+        </a>
+    </div>
+
+    <div class="container">
+        <header>
+            <img src="logo.png" alt="Logo Da Empresa" />
+            <h1>Nome da Empresa</h1>
+        </header>
+
+        <main>
+            <form id="loginForm">
+                <!-- Card estilizado para o formulário de login -->
+                <div class="card">
+                    <!-- Avatar ilustrativo -->
+                    <div class="avatar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+
+                    <!-- Campo de e-mail -->
+                    <div class="input-group">
+                        <label for="email">Email ID</label>
+                        <input type="email" id="email" name="email" required placeholder="seu@email.com" />
+                    </div>
+
+                    <!-- Campo de senha -->
+                    <div class="input-group">
+                        <label for="senha">Password</label>
+                        <input type="password" id="senha" name="senha" required placeholder="Digite sua senha" />
+                    </div>
+
+                    <!-- Opções adicionais -->
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="rememberMe" /> Lembrar senha
+                        </label>
+                        <a href="#" class="forgot-password">Esqueceu sua senha?</a>
+                    </div>
+
+                    <!-- Botão de login -->
+                    <button type="submit" class="btn-login">Acesse sua conta</button>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script src="js/login.js"></script>
+</body>
+</html>

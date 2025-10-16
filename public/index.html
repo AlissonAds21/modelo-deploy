@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Projeto</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <header>
+        <div class="imagem-logo">
+            <img src="imagens/logo.png" alt="Logo do meu Projeto" class="logo">
+        </div>
+        
+        <div class="social-icons">
+            <a href="#">📞 WhatsApp</a>
+            <a href="#">📷 Instagram</a>
+            <a href="#">📘 Facebook</a>
+            <a href="#">🐦 Twitter</a>
+            <a href="#">✉️ Gmail</a>
+        </div>
+        <div class="auth-buttons" id="authButtons">
+            <!-- Botões serão gerados via JavaScript index.js-->
+        </div>
+    </header>
+
+    <div class="menu-container">
+        <nav>
+            <ul>
+                <li><a href="index.html">Início</a></li>
+                <li><a href="produtos.html">Anúncios</a></li>
+                <li><a href="#">Sobre Nós</a></li>
+                <li><a href="#">Contato</a></li>
+                <li><a href="#">Trabalhe Conosco</a></li>
+                <li class="search-box">
+                    <span>🔍</span>
+                    <input type="text" placeholder="Pesquisar...">
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <main>
+        <p>Somente produtos em ótimos estados são comercializados.</p>
+        <h2>Nossa marca!!! Produto de qualidade mais barato</h2>
+
+        <section>
+            <h3>Materiais de Escritório:</h3>
+            <div class="galeria">
+                <!-- Repetir para todas as imagens -->
+                <img src="imagens_produtos/produto1.png" onclick="location.href='produtos1.html'" alt="Produto1">
+                <img src="imagens_produtos/produto2.png" onclick="location.href='produtos2.html'" alt="Produto2">
+                <img src="imagens_produtos/produto3.png" onclick="location.href='produtos3.html'" alt="Produto3">
+                <img src="imagens_produtos/produto4.png" onclick="location.href='produtos4.html'" alt="Produto4">
+                <img src="imagens_produtos/produto5.png" onclick="location.href='produtos5.html'" alt="Produto5">
+                <img src="imagens_produtos/produto6.png" onclick="location.href='produtos6.html'" alt="Produto6">               
+            </div>
+        </section>
+
+        <section>
+            <h3>Informática</h3>
+            <div class="galeria">
+                <img src="imagens_produtos/produto7.png" onclick="location.href='produtos.html'" alt="Produto">               
+                <img src="imagens_produtos/produto8.png" onclick="location.href='produtos.html'" alt="Produto">
+                <img src="imagens_produtos/produto9.png" onclick="location.href='produtos.html'" alt="Produto">
+                <img src="imagens_produtos/produto10.png" onclick="location.href='produtos.html'" alt="Produto">
+                <img src="imagens_produtos/produto11.png" onclick="location.href='produtos.html'" alt="Produto">
+                <img src="imagens_produtos/produto12.png" onclick="location.href='produtos.html'" alt="Produto">
+
+            </div>
+        </section>
+      
+    </main>
+
+    <footer>
+        <p>Comercio e-commerce produtos "Seu Produto" ltda.</p>
+        <p>Endereço: Av. Brasil 1005, CEP 07352-090 centro, São Paulo, SP Brasil</p>
+    </footer>
+
+    <script src="js/index.js"></script>
+</body>
+</html>
