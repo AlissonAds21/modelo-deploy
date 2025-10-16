@@ -32,3 +32,26 @@ document.addEventListener('DOMContentLoaded', () => {
     alert('Funcionalidade de atualização será implementada em breve!');
     // Aqui você faria um fetch PUT para /api/atualizar-usuario
   }
+  // Em minha-conta.js, após carregar o usuário:
+  document.addEventListener('DOMContentLoaded', () => {
+    const usuario = JSON.parse(localStorage.getItem('usuario'));
+    if (!usuario) {
+      alert('Você precisa estar logado...');
+      location.href = 'login.html';
+      return;
+    }
+  
+    document.getElementById('nome').value = usuario.nome;
+    document.getElementById('cpf').value = usuario.cpf;
+    document.getElementById('email').value = usuario.email;
+  
+    // Exibir foto de perfil, se existir
+    if (usuario.fotoPerfil) {
+      const imgPerfil = document.createElement('img');
+      imgPerfil.src = usuario.fotoPerfil;
+      imgPerfil.style.width = '100px';
+      imgPerfil.style.height = '100px';
+      imgPerfil.style.borderRadius = '50%';
+      document.querySelector('header').appendChild(imgPerfil);
+    }
+  });

@@ -119,7 +119,8 @@ app.post('/api/login', async (req, res) => {
         id: user.id,
         nome: user.nome,
         email: user.email,
-        cpf: user.cpf
+        cpf: user.cpf,
+        fotoPerfil: user.fotoPerfil // ← adicione esta linha!
       }
     });
   } catch (err) {
