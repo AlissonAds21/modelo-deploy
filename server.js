@@ -3,7 +3,6 @@ const express = require('express');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
-const path = require('path');
 const multer = require('multer');
 
 const app = express();
@@ -47,8 +46,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static('public/uploads'));
-
-// ✅ Servir imagens (adicione esta linha!)
 app.use('/imagensSite', express.static('public/imagensSite'));
 
 // Configuração de upload
@@ -123,7 +120,7 @@ app.post('/api/login', async (req, res) => {
         nome: user.nome,
         email: user.email,
         cpf: user.cpf,
-        fotoPerfil: user.fotoPerfil // ← adicione esta linha!
+        fotoPerfil: user.fotoPerfil // ✅ Envia a URL da imagem para o frontend
       }
     });
   } catch (err) {
@@ -132,8 +129,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-console.log(`Imagem salva em: ${fotoPerfil}`);
-
+// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
