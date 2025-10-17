@@ -48,6 +48,9 @@ app.use(express.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static('public/uploads'));
 
+// ✅ Servir imagens (adicione esta linha!)
+app.use('/imagensSite', express.static('public/imagensSite'));
+
 // Configuração de upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -128,6 +131,8 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ error: 'Erro interno no login.' });
   }
 });
+
+console.log(`Imagem salva em: ${fotoPerfil}`);
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
