@@ -7,8 +7,9 @@ body {
 
 /* Cabeçalho principal */
 header {
-    background-color: #587bfa;
-    color: white;
+    /* faixa em cinza claro conforme solicitado */
+    background-color: #d3d3d3; /* cor solicitada pelo usuário */
+    color: #001f3f; /* texto do header em azul-marinho escuro para contraste */
     padding: 20px 20px;
     display: flex;
     justify-content: space-between;
@@ -77,25 +78,81 @@ header {
     font-size: 18px;
 }
 
-/* Galerias de produtos */
-.galeria,
-.galeria-produtos {
+/* === BOTÕES ENTRAR / CADASTRAR === */
+.auth-buttons {
     display: flex;
-    flex-wrap: wrap;
-    gap: 30px;
-    padding: 10px;
+    gap: 10px;
+    align-items: center;
 }
 
-/* Imagens das galerias */
+.auth-buttons button {
+    /* largura fixa para garantir que Entrar e Cadastrar tenham mesma largura */
+    min-width: 130px;
+    width: 130px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: none;
+    background-color: #9fb9ff; /* azul claro */
+    color: #001f3f; /* texto em azul-marinho-escuro conforme solicitado */
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 12px rgba(2, 30, 80, 0.35); /* sombra azul marinho */
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.auth-buttons button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 18px rgba(2, 30, 80, 0.45);
+}
+
+/* Ajustes mobile: botões empilhados e largura automática */
+@media (max-width: 480px) {
+    .auth-buttons {
+        flex-direction: column;
+        width: auto;
+    }
+    .auth-buttons button {
+        width: 100%;
+        min-width: 0;
+        padding: 10px 14px;
+        border-radius: 8px;
+    }
+}
+
+
+/* Galerias de produtos: usar grid responsivo para preencher toda a largura disponível */
+.galeria,
+.galeria-produtos {
+    display: grid;
+    /* layout responsivo: cria tantas colunas quanto couber com largura mínima e permite encolher em telas menores */
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 18px;
+    /* padding vertical mantido; sem padding horizontal para controlar borda externa em outros seletores */
+    padding: 16px 0;
+    width: 100%;
+    max-width: none; /* permitir ocupar toda a largura disponível */
+    box-sizing: border-box;
+    justify-items: center; /* centraliza imagens dentro das células e evita que cresçam demais visualmente */
+}
+
+/* Imagens das galerias: ocupar 100% do item e manter proporção */
 .galeria img,
 .galeria-produtos img {
-    width: 160px;
-    height: 120px;
-    object-fit: contain;
-    object-position: center; /* Garante que o centro da imagem seja mostrado */
+    width: 100%;
+    max-width: 320px; /* evita que imagens cresçam demais em telas muito largas */
+    height: auto;
+    aspect-ratio: 4 / 3; /* garante caixas com a mesma proporção */
+    object-fit: contain; /* mostrar a imagem por completo dentro do organizador */
+    object-position: center;
+    background-color: #ffffff; /* cor de fundo da caixa para 'letterbox' */
     border-radius: 10px;
     cursor: pointer;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: block;
+    /* espaçamento interno de 1mm apenas vertical; sem espaçamento lateral */
+    padding: 1mm 0; /* 1mm topo/baixo, 0 nas laterais */
+    padding-inline-start: 0; /* garantir que não haja recuo à esquerda */
+    box-sizing: border-box;
 }
 
 /* Efeito ao passar o mouse nas imagens */
@@ -130,13 +187,16 @@ input {
     display: block;
     margin-bottom: 10px;
     padding: 5px;
-    width: 250px;
+    width: 100%;
+    max-width: 320px;
 }
 
+/* Não forçar todos os botões a 100% - usar classes específicas quando for necessário */
 button {
     margin-top: 10px;
-    padding: 10px;
-    width: 100%;
+    padding: 10px 14px;
+    width: auto;
+    display: inline-block;
 }
 
 /* ===============================================
@@ -269,13 +329,15 @@ button {
 
     .galeria,
     .galeria-produtos {
-        gap: 20px;
+        /* para telas intermediárias, reduzir para 4 colunas */
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
     }
 
     .galeria img,
     .galeria-produtos img {
-        width: 140px;
-        height: 105px;
+        width: 100%;
+        height: auto;
     }
 }
 
@@ -358,7 +420,9 @@ button {
     }
 
     main {
-        padding: 15px;
+        /* espaçamento horizontal para afastar texto das bordas e alinhar com conteúdo */
+        padding: 16px 24px;
+        box-sizing: border-box;
     }
 
     main h2 {
@@ -382,14 +446,16 @@ button {
 
     .galeria,
     .galeria-produtos {
-        gap: 15px;
-        justify-content: center;
+        /* tablet: 3 colunas */
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        justify-content: stretch;
     }
 
     .galeria img,
     .galeria-produtos img {
-        width: 120px;
-        height: 90px;
+        width: 100%;
+        height: auto;
     }
 
     .logged-user-container {
@@ -466,7 +532,7 @@ button {
     }
 
     main {
-        padding: 10px;
+        padding: 10px 12px;
     }
 
     main h2 {
@@ -483,16 +549,16 @@ button {
 
     .galeria,
     .galeria-produtos {
+        /* mobile: 2 colunas */
+        grid-template-columns: repeat(2, 1fr);
         gap: 10px;
         padding: 5px;
     }
 
     .galeria img,
     .galeria-produtos img {
-        width: 100px;
-        height: 75px;
-        flex: 0 0 calc(50% - 5px);
-        max-width: calc(50% - 5px);
+        width: 100%;
+        height: auto;
     }
 
     .logged-user-container {
@@ -539,10 +605,15 @@ button {
 
 /* Mobile Muito Pequeno */
 @media (max-width: 360px) {
+    .galeria,
+    .galeria-produtos {
+        grid-template-columns: 1fr;
+    }
+
     .galeria img,
     .galeria-produtos img {
-        width: 90px;
-        height: 68px;
+        width: 100%;
+        height: auto;
     }
 
     .logo {

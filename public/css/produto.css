@@ -13,7 +13,9 @@
 .product-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  /* manter padding vertical e aumentar folga horizontal para evitar que imagens encostem nas extremidades */
+  padding: 20px 24px;
+  box-sizing: border-box;
 }
 
 .breadcrumb {
@@ -60,10 +62,18 @@
 }
 
 .main-image img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* mostrar imagem inteira dentro do slot sem cortar */
+  background-color: #fff; /* letterbox background */
   transition: transform 0.4s ease;
+}
+
+.main-image img {
+  /* manter 1mm apenas em cima/baixo; remover recuo lateral para ficar alinhada à margem do slot */
+  padding: 1mm 0;
+  padding-inline-start: 0;
+  box-sizing: border-box;
 }
 
 .main-image:hover img {
@@ -94,7 +104,13 @@
 .thumbnail img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain; /* mostrar miniaturas inteiras */
+}
+
+.thumbnail img {
+  padding: 1mm 0;
+  padding-inline-start: 0;
+  box-sizing: border-box;
 }
 
 .thumbnail:hover {
