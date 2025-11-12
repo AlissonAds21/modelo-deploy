@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Produto 2 - Material de Escritório</title>
+  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="css/produto.css">
+</head>
+<body>
+  <header>
+    <div class="imagem-logo">
+      <img src="/imagensSite/logo.png" alt="Logo do meu Projeto" class="logo" onclick="location.href='index.html'">
+    </div>
+    <div class="social-icons">
+      <a href="#">📞 WhatsApp</a>
+      <a href="#">📷 Instagram</a>
+      <a href="#">📘 Facebook</a>
+      <a href="#">🐦 Twitter</a>
+      <a href="#">✉️ Gmail</a>
+    </div>
+    <div class="auth-buttons" id="authButtons"></div>
+  </header>
+  <div class="menu-container">
+    <nav>
+      <ul>
+        <li><a href="index.html">Início</a></li>
+        <li><a href="produtos.html">Anúncios</a></li>
+        <li><a href="#">Sobre Nós</a></li>
+        <li><a href="#">Contato</a></li>
+        <li><a href="#">Trabalhe Conosco</a></li>
+        <li class="search-box">
+          <span>🔍</span>
+          <input type="text" placeholder="Pesquisar...">
+        </li>
+      </ul>
+    </nav>
+  </div>
+  <div class="product-page">
+    <div class="breadcrumb">
+      <a href="index.html">Início</a> / <a href="produtos.html">Anúncios</a> / <span>Produto 2</span>
+    </div>
+    <div class="product-container">
+      <div class="product-images">
+        <div class="main-image">
+          <img id="main-img" src="imagens_produtos/produto02/produto2.png" alt="Imagem principal do produto">
+        </div>
+        <div class="thumbnail-list">
+          <div class="thumbnail active" onclick="changeImage('imagens_produtos/produto02/produto2.png', this)">
+            <img src="imagens_produtos/produto02/produto2.png" alt="Miniatura 1">
+          </div>
+          <div class="thumbnail" onclick="changeImage('imagens_produtos/produto02/produto22.png', this)">
+            <img src="imagens_produtos/produto02/produto22.png" alt="Miniatura 2">
+          </div>
+          <div class="thumbnail" onclick="changeImage('imagens_produtos/produto02/produto222.png', this)">
+            <img src="imagens_produtos/produto02/produto222.png" alt="Miniatura 3">
+          </div>
+        </div>
+      </div>
+      <div class="product-info">
+        <div class="product-title">MATERIAL DE ESCRITÓRIO - PRODUTO 2</div>
+        <div class="price-section">
+          <div class="price">R$ 2.500,00</div>
+          <div class="installments">ou 3x de R$ 833,33 sem juros</div>
+          <div class="installments">ou 12x de R$ 250,00 com juros</div>
+        </div>
+        <div class="discount">
+          <span class="discount-icon">🎁</span>
+          <span><strong>5% OFF</strong> no pagamento à vista</span>
+        </div>
+        <div class="tags">
+          <span class="badge">DESTAQUE</span>
+          <span class="tag">Garantia de 12 meses</span>
+          <span class="tag">Frete grátis</span>
+        </div>
+        <div class="contact-buttons">
+          <button class="btn-primary" onclick="handlePurchase()">Comprar Agora</button>
+          <button class="btn-secondary" onclick="handleChat()">Falar com Vendedor</button>
+        </div>
+        <div class="seller-card">
+          <div class="seller-avatar">RG</div>
+          <div class="seller-info">
+            <div class="seller-name">Refrigeração Gonzaga</div>
+            <div class="seller-status">Último acesso há 19 min</div>
+            <div style="margin-top: 5px;">
+              <span style="background-color: #e0f7fa; color: #00796b; padding: 2px 8px; border-radius: 4px; font-size: 11px;">VENDEDOR VERIFICADO</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="product-details">
+      <h3>📋 Detalhes do Produto</h3>
+      <div class="details-grid">
+        <div class="detail-item"><strong>Marca</strong><span>Genérica</span></div>
+        <div class="detail-item"><strong>Modelo</strong><span>PROD-002</span></div>
+        <div class="detail-item"><strong>Categoria</strong><span>Material de Escritório</span></div>
+        <div class="detail-item"><strong>Condição</strong><span>Novo</span></div>
+        <div class="detail-item"><strong>Garantia</strong><span>12 meses</span></div>
+        <div class="detail-item"><strong>Estado</strong><span>Excelente</span></div>
+        <div class="detail-item"><strong>Entrega</strong><span>Frete grátis</span></div>
+        <div class="detail-item"><strong>Origem</strong><span>Nacional</span></div>
+      </div>
+      <div class="product-description" style="margin-top: 25px;">
+        <h4 style="margin-bottom: 10px;">Descrição Completa</h4>
+        <p>Produto de alta qualidade para escritório, ideal para uso profissional. Material resistente e durável, garantindo longa vida útil. Design moderno e funcional que se adapta a qualquer ambiente de trabalho. Produto novo, lacrado e com garantia de fábrica.</p>
+      </div>
+    </div>
+    <div class="payment-section">
+      <h3>💳 Formas de Pagamento</h3>
+      <p style="color: var(--text-light); margin-bottom: 20px;">Escolha a forma de pagamento que melhor se adequa a você:</p>
+      <div class="payment-options">
+        <div class="payment-card" onclick="selectPayment(this, 'pix')">
+          <div class="payment-icon">💳</div>
+          <h4>PIX</h4>
+          <p><strong>5% de desconto</strong></p>
+          <p>R$ 2.375,00</p>
+          <p style="font-size: 12px; color: var(--text-light);">Aprovação imediata</p>
+        </div>
+        <div class="payment-card" onclick="selectPayment(this, 'boleto')">
+          <div class="payment-icon">📄</div>
+          <h4>Boleto Bancário</h4>
+          <p><strong>3% de desconto</strong></p>
+          <p>R$ 2.425,00</p>
+          <p style="font-size: 12px; color: var(--text-light);">Vencimento em 3 dias</p>
+        </div>
+        <div class="payment-card" onclick="selectPayment(this, 'cartao')">
+          <div class="payment-icon">💳</div>
+          <h4>Cartão de Crédito</h4>
+          <p>Até 12x sem juros</p>
+          <p>12x de R$ 208,33</p>
+          <p style="font-size: 12px; color: var(--text-light);">Parcelamento disponível</p>
+        </div>
+        <div class="payment-card" onclick="selectPayment(this, 'debito')">
+          <div class="payment-icon">🏦</div>
+          <h4>Cartão de Débito</h4>
+          <p><strong>2% de desconto</strong></p>
+          <p>R$ 2.450,00</p>
+          <p style="font-size: 12px; color: var(--text-light);">Aprovação imediata</p>
+        </div>
+      </div>
+      <div id="paymentDetails" style="margin-top: 25px; padding: 20px; background-color: var(--bg-secondary); border-radius: 8px; display: none;">
+        <h4 style="margin-bottom: 15px;">Informações do Pagamento Selecionado</h4>
+        <div id="paymentInfo"></div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <p>Comercio e-commerce produtos "Seu Produto" ltda.</p>
+    <p>Endereço: Av. Brasil 1005, CEP 07352-090 centro, São Paulo, SP Brasil</p>
+  </footer>
+  <script src="js/index.js"></script>
+  <script src="js/produto.js"></script>
+</body>
+</html>
+

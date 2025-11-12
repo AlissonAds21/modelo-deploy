@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Administrativo</title>
+  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <header>
+    <div class="imagem-logo">
+      <img src="/imagensSite/logo.png" alt="Logo" class="logo" onclick="location.href='index.html'">
+    </div>
+    <div class="auth-buttons">
+      <button onclick="location.href='index.html'">Voltar</button>
+      <button onclick="logout()">Sair</button>
+    </div>
+  </header>
+
+  <div class="menu-container">
+    <nav>
+      <ul>
+        <li><a href="admin.html">Dashboard</a></li>
+        <li><a href="receber-produto.html">Receber Produto</a></li>
+        <li><a href="realizar-venda.html">Realizar Venda</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <div class="admin-container">
+    <h1>📊 Painel Administrativo</h1>
+
+    <!-- Dashboard Cards -->
+    <div class="dashboard-cards" id="dashboardCards">
+      <div class="card">
+        <h3>Produtos Ativos</h3>
+        <p class="card-value" id="totalProdutos">-</p>
+      </div>
+      <div class="card">
+        <h3>Total em Estoque</h3>
+        <p class="card-value" id="totalEstoque">-</p>
+      </div>
+      <div class="card">
+        <h3>Vendas (30 dias)</h3>
+        <p class="card-value" id="totalVendas">-</p>
+      </div>
+      <div class="card">
+        <h3>Compras (30 dias)</h3>
+        <p class="card-value" id="totalCompras">-</p>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('produtos')">Produtos</button>
+      <button class="tab-btn" onclick="showTab('estoque')">Estoque</button>
+      <button class="tab-btn" onclick="showTab('vendas')">Vendas</button>
+      <button class="tab-btn" onclick="showTab('compras')">Compras</button>
+    </div>
+
+    <!-- Tab Content: Produtos -->
+    <div id="tab-produtos" class="tab-content active">
+      <div class="section-header">
+        <h2>📦 Produtos</h2>
+        <button class="btn-primary" onclick="abrirModalProduto()">+ Novo Produto</button>
+      </div>
+      <div class="table-container">
+        <table id="tabelaProdutos">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Produto</th>
+              <th>Marca</th>
+              <th>Valor Compra</th>
+              <th>Valor Venda</th>
+              <th>Estoque</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyProdutos">
+            <tr><td colspan="7">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab Content: Estoque -->
+    <div id="tab-estoque" class="tab-content">
+      <h2>📊 Estoque</h2>
+      <div class="table-container">
+        <table id="tabelaEstoque">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Produto</th>
+              <th>Saldo Anterior</th>
+              <th>Saldo Atual</th>
+              <th>Última Movimentação</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyEstoque">
+            <tr><td colspan="5">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab Content: Vendas -->
+    <div id="tab-vendas" class="tab-content">
+      <h2>💰 Vendas</h2>
+      <div class="table-container">
+        <table id="tabelaVendas">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Produto</th>
+              <th>Quantidade</th>
+              <th>Valor Unit.</th>
+              <th>Valor Total</th>
+              <th>Vendedor</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyVendas">
+            <tr><td colspan="7">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab Content: Compras -->
+    <div id="tab-compras" class="tab-content">
+      <h2>🛒 Compras</h2>
+      <div class="table-container">
+        <table id="tabelaCompras">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Produto</th>
+              <th>Quantidade</th>
+              <th>Valor Unit.</th>
+              <th>Valor Total</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyCompras">
+            <tr><td colspan="6">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Novo/Editar Produto -->
+  <div id="modalProduto" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="fecharModalProduto()">&times;</span>
+      <h2 id="modalTitulo">Novo Produto</h2>
+      <form id="formProduto">
+        <input type="hidden" id="produtoCodigo">
+        <div class="form-group">
+          <label>Nome do Produto *</label>
+          <input type="text" id="produtoNome" required>
+        </div>
+        <div class="form-group">
+          <label>Marca</label>
+          <input type="text" id="produtoMarca">
+        </div>
+        <div class="form-group">
+          <label>Valor de Compra</label>
+          <input type="number" id="produtoValorCompra" step="0.01" min="0">
+        </div>
+        <div class="form-group">
+          <label>Valor de Venda</label>
+          <input type="number" id="produtoValorVenda" step="0.01" min="0">
+        </div>
+        <div class="form-actions">
+          <button type="button" onclick="fecharModalProduto()">Cancelar</button>
+          <button type="submit" class="btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/index.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
+
+
+

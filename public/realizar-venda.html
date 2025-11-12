@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Realizar Venda</title>
+  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <header>
+    <div class="imagem-logo">
+      <img src="/imagensSite/logo.png" alt="Logo" class="logo" onclick="location.href='index.html'">
+    </div>
+    <div class="auth-buttons">
+      <button onclick="location.href='admin.html'">Voltar</button>
+    </div>
+  </header>
+
+  <div class="admin-container">
+    <div class="form-container">
+      <h1>💰 Realizar Venda</h1>
+      
+      <form id="formRealizarVenda">
+        <div class="form-group">
+          <label>Código do Produto *</label>
+          <input type="number" id="codigoProduto" required onchange="buscarProduto()">
+        </div>
+        
+        <div class="form-group">
+          <label>Nome do Produto</label>
+          <input type="text" id="nomeProduto" readonly>
+        </div>
+        
+        <div class="form-group">
+          <label>Estoque Disponível</label>
+          <input type="text" id="estoqueDisponivel" readonly>
+        </div>
+        
+        <div class="form-group">
+          <label>Quantidade *</label>
+          <input type="number" id="quantidade" min="1" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Vendedor (ID) *</label>
+          <input type="number" id="idVendedor" value="5" required>
+          <small>ID 5 = Vendedor (padrão)</small>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" onclick="location.href='admin.html'">Cancelar</button>
+          <button type="submit" class="btn-primary">Finalizar Venda</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/realizar-venda.js"></script>
+</body>
+</html>
+
+
+
