@@ -20,8 +20,88 @@ async function buscarUrlAmpulheta() {
   }
 }
 
+// Função para verificar expiração de sessão (1 hora de inatividade)
+function verificarSessaoExpirada() {
+  const token = localStorage.getItem('token');
+  const tokenExpiry = localStorage.getItem('tokenExpiry');
+  const lastActivity = localStorage.getItem('lastActivity');
+  
+  if (!token || !tokenExpiry) {
+    return false; // Sem token, não há sessão para expirar
+  }
+  
+  const agora = Date.now();
+  const expiryTime = parseInt(tokenExpiry);
+  
+  // Verificar se token expirou
+  if (agora > expiryTime) {
+    console.log('Sessão expirada por tempo (1 hora).');
+    limparSessao();
+    return true;
+  }
+  
+  // Verificar inatividade (1 hora sem interação)
+  if (lastActivity) {
+    const tempoInatividade = agora - parseInt(lastActivity);
+    const umaHora = 60 * 60 * 1000; // 1 hora em milissegundos
+    
+    if (tempoInatividade > umaHora) {
+      console.log('Sessão expirada por inatividade (1 hora).');
+      limparSessao();
+      return true;
+    }
+  }
+  
+  // Atualizar última atividade
+  localStorage.setItem('lastActivity', agora.toString());
+  return false;
+}
+
+// Função para limpar sessão
+function limparSessao() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('tokenExpiry');
+  localStorage.removeItem('usuario');
+  localStorage.removeItem('lastActivity');
+  
+  // Redirecionar para login se estiver em página protegida
+  if (window.location.pathname.includes('admin.html') || 
+      window.location.pathname.includes('minha-conta.html')) {
+    alert('Sua sessão expirou. Por favor, faça login novamente.');
+    window.location.href = 'login.html';
+  } else {
+    // Recarregar página para atualizar header
+    location.reload();
+  }
+}
+
+// Registrar atividade do usuário
+document.addEventListener('click', () => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    localStorage.setItem('lastActivity', Date.now().toString());
+  }
+});
+
+document.addEventListener('keypress', () => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    localStorage.setItem('lastActivity', Date.now().toString());
+  }
+});
+
+// Verificar sessão periodicamente (a cada 5 minutos)
+setInterval(() => {
+  verificarSessaoExpirada();
+}, 5 * 60 * 1000);
+
 // Função para verificar se o usuário está logado
 function checkLoginStatus() {
+  // Verificar se sessão expirou
+  if (verificarSessaoExpirada()) {
+    return;
+  }
+  
   const usuarioStr = localStorage.getItem('usuario');
   if (!usuarioStr) {
     document.getElementById('authButtons').innerHTML = `
@@ -131,9 +211,52 @@ function checkLoginStatus() {
   
   // Função para sair (limpar localStorage e recarregar)
   function logout() {
-    localStorage.removeItem('usuario');
+    limparSessao();
     location.reload();
   }
   
   // Executa ao carregar a página
-  document.addEventListener('DOMContentLoaded', checkLoginStatus);
+  document.addEventListener('DOMContentLoaded', () => {
+    checkLoginStatus();
+    carregarImagemProduto1();
+  });
+
+// Função para carregar a primeira imagem do produto1 do banco de dados
+async function carregarImagemProduto1() {
+  const imgProduto1 = document.getElementById('img-produto1');
+  
+  if (!imgProduto1) {
+    return; // Elemento não encontrado, sair silenciosamente
+  }
+  
+  try {
+    // Buscar imagens do produto1 (código 1)
+    const response = await fetch('/api/produtos/1/imagens');
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const imagens = await response.json();
+    
+    // Se houver imagens, usar a primeira (ordenada por ordem)
+    if (imagens && imagens.length > 0) {
+      // Ordenar por ordem
+      imagens.sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+      
+      // Usar a primeira imagem
+      const primeiraImagem = imagens[0];
+      imgProduto1.src = primeiraImagem.url_imagem;
+      imgProduto1.alt = primeiraImagem.descricao || 'Produto1';
+      
+      console.log('✅ Imagem do produto1 carregada do banco:', primeiraImagem.url_imagem);
+    } else {
+      // Se não houver imagens no banco, manter a imagem padrão
+      console.log('ℹ️ Nenhuma imagem encontrada no banco para produto1, usando imagem padrão');
+    }
+  } catch (err) {
+    // Em caso de erro, manter a imagem padrão
+    console.warn('⚠️ Erro ao carregar imagem do produto1 do banco, usando imagem padrão:', err);
+    // A imagem padrão já está definida no HTML, então não precisa fazer nada
+  }
+}

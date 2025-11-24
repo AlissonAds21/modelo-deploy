@@ -4,10 +4,15 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const multer = require('multer');
+const jwt = require('jsonwebtoken');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// === JWT CONFIG ===
+const JWT_SECRET = process.env.JWT_SECRET || 'sua-chave-secreta-super-segura-alterar-em-producao';
+const JWT_EXPIRES_IN = '1h'; // Token expira em 1 hora
 
 // === SUPABASE CONFIG (opcional localmente, obrigatório no Render) ===
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -173,6 +178,27 @@ app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
   }
 });
 
+// === MIDDLEWARE: Verificar JWT ===
+function verificarToken(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1] || req.headers['x-access-token'];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Token não fornecido. Faça login novamente.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.userId;
+    req.userEmail = decoded.email;
+    next();
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Sessão expirada. Faça login novamente.' });
+    }
+    return res.status(401).json({ error: 'Token inválido. Faça login novamente.' });
+  }
+}
+
 // === ROTA: LOGIN ===
 app.post('/api/login', async (req, res) => {
   const { login, senha } = req.body;
@@ -211,8 +237,20 @@ app.post('/api/login', async (req, res) => {
     // Log para debug
     console.log('📸 Foto de perfil do banco:', fotoPerfil);
     
+    // Gerar JWT token
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email,
+        nome: user.nome
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+    
     res.json({
       message: 'Login realizado com sucesso!',
+      token: token,
       usuario: {
         id: user.id,
         nome: user.nome,
@@ -225,6 +263,15 @@ app.post('/api/login', async (req, res) => {
     console.error('Erro no login:', err);
     res.status(500).json({ error: 'Erro interno no login.' });
   }
+});
+
+// === ROTA: Verificar Token (para validação no cliente) ===
+app.get('/api/verificar-sessao', verificarToken, (req, res) => {
+  res.json({ 
+    valid: true, 
+    userId: req.userId,
+    message: 'Sessão válida' 
+  });
 });
 
 // ============================================
@@ -337,17 +384,143 @@ app.post('/api/produtos', async (req, res) => {
 app.put('/api/produtos/:codigo', async (req, res) => {
   try {
     const { codigo } = req.params;
-    const { produto, marca, valor_compra, valor_venda } = req.body;
+    const { 
+      produto, 
+      marca, 
+      valor_compra, 
+      valor_venda,
+      modelo,
+      capacidade,
+      tensao,
+      tecnologia,
+      cor,
+      garantia,
+      condicao,
+      descricao_completa
+    } = req.body;
     
-    const result = await pool.query(`
-      UPDATE produto
-      SET produto = COALESCE($1, produto),
-          marca = COALESCE($2, marca),
-          valor_compra = COALESCE($3, valor_compra),
-          valor_venda = COALESCE($4, valor_venda)
-      WHERE codigo_produto = $5
-      RETURNING *
-    `, [produto, marca, valor_compra, valor_venda, codigo]);
+    // Construir query dinamicamente para lidar com colunas que podem não existir
+    let updateFields = [];
+    let values = [];
+    let paramIndex = 1;
+    
+    if (produto !== undefined) {
+      updateFields.push(`produto = COALESCE($${paramIndex}, produto)`);
+      values.push(produto);
+      paramIndex++;
+    }
+    if (marca !== undefined) {
+      updateFields.push(`marca = COALESCE($${paramIndex}, marca)`);
+      values.push(marca);
+      paramIndex++;
+    }
+    if (valor_compra !== undefined) {
+      updateFields.push(`valor_compra = COALESCE($${paramIndex}, valor_compra)`);
+      values.push(valor_compra);
+      paramIndex++;
+    }
+    if (valor_venda !== undefined) {
+      updateFields.push(`valor_venda = COALESCE($${paramIndex}, valor_venda)`);
+      values.push(valor_venda);
+      paramIndex++;
+    }
+    if (modelo !== undefined) {
+      updateFields.push(`modelo = COALESCE($${paramIndex}, modelo)`);
+      values.push(modelo);
+      paramIndex++;
+    }
+    if (capacidade !== undefined) {
+      updateFields.push(`capacidade = COALESCE($${paramIndex}, capacidade)`);
+      values.push(capacidade);
+      paramIndex++;
+    }
+    if (tensao !== undefined) {
+      updateFields.push(`tensao = COALESCE($${paramIndex}, tensao)`);
+      values.push(tensao);
+      paramIndex++;
+    }
+    if (tecnologia !== undefined) {
+      updateFields.push(`tecnologia = COALESCE($${paramIndex}, tecnologia)`);
+      values.push(tecnologia);
+      paramIndex++;
+    }
+    if (cor !== undefined) {
+      updateFields.push(`cor = COALESCE($${paramIndex}, cor)`);
+      values.push(cor);
+      paramIndex++;
+    }
+    if (garantia !== undefined) {
+      updateFields.push(`garantia = COALESCE($${paramIndex}, garantia)`);
+      values.push(garantia);
+      paramIndex++;
+    }
+    if (condicao !== undefined) {
+      updateFields.push(`condicao = COALESCE($${paramIndex}, condicao)`);
+      values.push(condicao);
+      paramIndex++;
+    }
+    if (descricao_completa !== undefined) {
+      updateFields.push(`descricao_completa = COALESCE($${paramIndex}, descricao_completa)`);
+      values.push(descricao_completa);
+      paramIndex++;
+    }
+    
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo para atualizar.' });
+    }
+    
+    values.push(codigo);
+    
+    // Tentar atualizar com todas as colunas, se alguma não existir, tentar sem ela
+    let result;
+    try {
+      result = await pool.query(`
+        UPDATE produto
+        SET ${updateFields.join(', ')}
+        WHERE codigo_produto = $${paramIndex}
+        RETURNING *
+      `, values);
+    } catch (err) {
+      // Se der erro por coluna não existir, tentar apenas com campos básicos
+      if (err.message.includes('column') || err.message.includes('does not exist')) {
+        console.warn('Algumas colunas de detalhes não existem, atualizando apenas campos básicos');
+        const basicFields = [];
+        const basicValues = [];
+        let basicIndex = 1;
+        
+        if (produto !== undefined) {
+          basicFields.push(`produto = COALESCE($${basicIndex}, produto)`);
+          basicValues.push(produto);
+          basicIndex++;
+        }
+        if (marca !== undefined) {
+          basicFields.push(`marca = COALESCE($${basicIndex}, marca)`);
+          basicValues.push(marca);
+          basicIndex++;
+        }
+        if (valor_compra !== undefined) {
+          basicFields.push(`valor_compra = COALESCE($${basicIndex}, valor_compra)`);
+          basicValues.push(valor_compra);
+          basicIndex++;
+        }
+        if (valor_venda !== undefined) {
+          basicFields.push(`valor_venda = COALESCE($${basicIndex}, valor_venda)`);
+          basicValues.push(valor_venda);
+          basicIndex++;
+        }
+        
+        basicValues.push(codigo);
+        
+        result = await pool.query(`
+          UPDATE produto
+          SET ${basicFields.join(', ')}
+          WHERE codigo_produto = $${basicIndex}
+          RETURNING *
+        `, basicValues);
+      } else {
+        throw err;
+      }
+    }
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Produto não encontrado.' });
@@ -359,7 +532,7 @@ app.put('/api/produtos/:codigo', async (req, res) => {
     });
   } catch (err) {
     console.error('Erro ao atualizar produto:', err);
-    res.status(500).json({ error: 'Erro ao atualizar produto.' });
+    res.status(500).json({ error: 'Erro ao atualizar produto: ' + err.message });
   }
 });
 
@@ -677,6 +850,185 @@ app.get('/api/imagens', async (req, res) => {
   }
 });
 
+// ============================================
+// ROTAS DE IMAGENS DE PRODUTOS
+// ============================================
+
+// Função para sanitizar nome do arquivo (reutilizar da rota de cadastro)
+function sanitizeFileName(name) {
+  const normalized = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const sanitized = normalized.replace(/[^a-zA-Z0-9._-]/g, '-');
+  return sanitized.replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+// Listar imagens de um produto/serviço
+app.get('/api/produtos/:codigo/imagens', async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    
+    const result = await pool.query(
+      'SELECT * FROM servico_imagens WHERE codigo_servico = $1 AND ativo = TRUE ORDER BY ordem, id_imagem',
+      [codigo]
+    );
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro ao listar imagens do serviço:', err);
+    res.status(500).json({ error: 'Erro ao listar imagens do serviço.' });
+  }
+});
+
+// Upload de imagem de produto
+app.post('/api/produtos/:codigo/imagens', upload.single('imagem'), async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    const { ordem, descricao } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhuma imagem enviada.' });
+    }
+    
+    // Verificar se produto existe
+    const produtoCheck = await pool.query(
+      'SELECT codigo_produto FROM produto WHERE codigo_produto = $1',
+      [codigo]
+    );
+    
+    if (produtoCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Produto não encontrado.' });
+    }
+    
+    let urlImagem = null;
+    
+    // Upload no Supabase
+    if (supabase && req.file) {
+      const fileExtension = req.file.originalname.split('.').pop() || 'jpg';
+      const sanitizedName = sanitizeFileName(req.file.originalname.replace(/\.[^/.]+$/, ''));
+      const fileName = `servico-${codigo}-${Date.now()}-${sanitizedName}.${fileExtension}`;
+      
+      console.log('📤 Fazendo upload de imagem do serviço:', fileName);
+      
+      const { data, error } = await supabase.storage
+        .from('uploads')
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false
+        });
+
+      if (error) {
+        console.error('❌ Erro no upload do Supabase:', error.message);
+        return res.status(500).json({ error: 'Erro ao salvar imagem: ' + error.message });
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(fileName);
+      
+      urlImagem = publicUrl;
+      
+      if (urlImagem && urlImagem.includes('/upload/s/')) {
+        urlImagem = urlImagem.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+      }
+      
+      console.log('✅ Imagem do serviço salva no Supabase:', urlImagem);
+    } else {
+      return res.status(500).json({ error: 'Supabase não configurado. Upload de imagens desativado.' });
+    }
+    
+    // Inserir no banco
+    const result = await pool.query(
+      `INSERT INTO servico_imagens (codigo_servico, url_imagem, nome_arquivo, tipo_arquivo, ordem, descricao)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [
+        codigo,
+        urlImagem,
+        req.file.originalname,
+        req.file.mimetype.split('/')[1] || 'jpg',
+        parseInt(ordem) || 0,
+        descricao || null
+      ]
+    );
+    
+    res.status(201).json({
+      message: 'Imagem adicionada com sucesso!',
+      imagem: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Erro ao fazer upload de imagem:', err);
+    res.status(500).json({ error: 'Erro ao fazer upload de imagem: ' + err.message });
+  }
+});
+
+// Atualizar ordem ou descrição de imagem
+app.put('/api/produtos/:codigo/imagens/:idImagem', async (req, res) => {
+  try {
+    const { codigo, idImagem } = req.params;
+    const { ordem, descricao } = req.body;
+    
+    const result = await pool.query(
+      `UPDATE servico_imagens 
+       SET ordem = COALESCE($1, ordem), 
+           descricao = COALESCE($2, descricao)
+       WHERE id_imagem = $3 AND codigo_servico = $4
+       RETURNING *`,
+      [ordem ? parseInt(ordem) : null, descricao || null, idImagem, codigo]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Imagem não encontrada.' });
+    }
+    
+    res.json({
+      message: 'Imagem atualizada com sucesso!',
+      imagem: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Erro ao atualizar imagem:', err);
+    res.status(500).json({ error: 'Erro ao atualizar imagem.' });
+  }
+});
+
+// Deletar imagem de produto
+app.delete('/api/produtos/:codigo/imagens/:idImagem', async (req, res) => {
+  try {
+    const { codigo, idImagem } = req.params;
+    
+    // Buscar URL da imagem para deletar do Supabase
+    const imagemResult = await pool.query(
+      'SELECT url_imagem, nome_arquivo FROM servico_imagens WHERE id_imagem = $1 AND codigo_servico = $2',
+      [idImagem, codigo]
+    );
+    
+    if (imagemResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Imagem não encontrada.' });
+    }
+    
+    // Deletar do Supabase (opcional - pode manter para histórico)
+    if (supabase && imagemResult.rows[0].nome_arquivo) {
+      try {
+        // Extrair nome do arquivo da URL ou usar nome_arquivo
+        const fileName = imagemResult.rows[0].nome_arquivo;
+        await supabase.storage.from('uploads').remove([fileName]);
+        console.log('🗑️ Imagem removida do Supabase:', fileName);
+      } catch (supabaseErr) {
+        console.warn('⚠️ Erro ao remover do Supabase (continuando):', supabaseErr);
+      }
+    }
+    
+    // Marcar como inativo no banco (soft delete)
+    await pool.query(
+      'UPDATE servico_imagens SET ativo = FALSE WHERE id_imagem = $1 AND codigo_servico = $2',
+      [idImagem, codigo]
+    );
+    
+    res.json({ message: 'Imagem removida com sucesso!' });
+  } catch (err) {
+    console.error('Erro ao deletar imagem:', err);
+    res.status(500).json({ error: 'Erro ao deletar imagem.' });
+  }
+});
+
 // === MIDDLEWARE DE TRATAMENTO DE ERROS 404 ===
 app.use((req, res, next) => {
   // Se a rota começa com /api e não foi encontrada, retornar JSON
@@ -701,4 +1053,8 @@ app.listen(PORT, () => {
   console.log(`   GET  /api/dashboard`);
   console.log(`   GET  /api/imagens`);
   console.log(`   GET  /api/imagens/:nome`);
+  console.log(`   GET  /api/produtos/:codigo/imagens`);
+  console.log(`   POST /api/produtos/:codigo/imagens`);
+  console.log(`   PUT  /api/produtos/:codigo/imagens/:idImagem`);
+  console.log(`   DELETE /api/produtos/:codigo/imagens/:idImagem`);
 });

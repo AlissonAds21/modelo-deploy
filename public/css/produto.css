@@ -59,6 +59,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: zoom-in;
 }
 
 .main-image img {
@@ -66,18 +67,25 @@
   height: 100%;
   object-fit: contain; /* mostrar imagem inteira dentro do slot sem cortar */
   background-color: #fff; /* letterbox background */
-  transition: transform 0.4s ease;
-}
-
-.main-image img {
+  transition: transform 0.3s ease-out;
+  transform-origin: center center;
   /* manter 1mm apenas em cima/baixo; remover recuo lateral para ficar alinhada à margem do slot */
   padding: 1mm 0;
   padding-inline-start: 0;
   box-sizing: border-box;
 }
 
-.main-image:hover img {
-  transform: scale(1.05);
+.main-image:hover {
+  cursor: zoom-in;
+}
+
+.main-image.zooming {
+  cursor: zoom-out;
+}
+
+.main-image.zooming img {
+  transform: scale(2.5);
+  transition: transform 0.1s ease-out;
 }
 
 .thumbnail-list {
@@ -164,6 +172,59 @@
   font-weight: bold;
   margin-bottom: 15px;
   color: var(--text-dark);
+}
+
+.btn-editar-produto {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: none; /* Oculto por padrão, será mostrado apenas para usuários logados */
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+  margin-left: 15px;
+  white-space: nowrap;
+}
+
+.btn-editar-produto:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4);
+}
+
+.btn-editar-produto svg {
+  stroke: white;
+}
+
+/* Responsividade do botão Editar */
+@media (max-width: 768px) {
+  .btn-editar-produto {
+    padding: 8px 15px;
+    font-size: 13px;
+    margin-left: 10px;
+  }
+  
+  .product-title {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-editar-produto {
+    padding: 6px 12px;
+    font-size: 12px;
+    margin-left: 8px;
+  }
+  
+  .btn-editar-produto span {
+    display: none; /* Esconder texto em telas muito pequenas, mostrar apenas ícone */
+  }
 }
 
 .product-description {

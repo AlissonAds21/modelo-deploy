@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gerenciar Imagens do Serviço</title>
+  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="addserviços.css">
+</head>
+<body>
+  <!-- Header igual ao index.html -->
+  <header>
+    <div class="imagem-logo">
+      <img src="/imagensSite/logo.png" alt="Logo do meu Projeto" class="logo" onclick="location.href='index.html'">
+    </div>
+    
+    <div class="social-icons">
+      <a href="#">📞 WhatsApp</a>
+      <a href="#">📷 Instagram</a>
+      <a href="#">📘 Facebook</a>
+      <a href="#">🐦 Twitter</a>
+      <a href="#">✉️ Gmail</a>
+    </div>
+    <div class="auth-buttons" id="authButtons">
+      <!-- Botões serão gerados via JavaScript index.js-->
+    </div>
+  </header>
+
+  <div class="menu-container">
+    <nav>
+      <ul>
+        <li><a href="admin.html">Dashboard</a></li>
+        <li><a href="index.html">Início</a></li>
+        <li><a href="produtos1.html">Anúncios</a></li>
+        <li><a href="#">Sobre Nós</a></li>
+        <li><a href="#">Contato</a></li>
+        <li><a href="#">Trabalhe Conosco</a></li>
+        <li class="search-box">
+          <span>🔍</span>
+          <input type="text" placeholder="Pesquisar...">
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Conteúdo Principal -->
+  <div class="addservicos-container">
+    <div class="page-header">
+      <div class="breadcrumb">
+        <a href="index.html">Início</a> / 
+        <a href="produto1.html" id="linkProduto">Produto</a> / 
+        <span>Gerenciar Imagens</span>
+      </div>
+      <h1>📷 Gerenciar Imagens do Serviço</h1>
+      <p id="produtoInfo" class="produto-info">Carregando informações do produto...</p>
+    </div>
+
+    <!-- Botão de Adicionar -->
+    <div class="actions-header">
+      <button class="btn-add-imagem" onclick="abrirOpcoesAdicionar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Adicionar Imagem
+      </button>
+      <button class="btn-secondary" onclick="voltarParaProduto()">
+        ← Voltar para Produto
+      </button>
+    </div>
+
+    <!-- Galeria de Imagens -->
+    <div class="imagens-gallery-container">
+      <div id="imagensList" class="imagens-gallery-grid">
+        <div class="imagens-empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+          </svg>
+          <p>Nenhuma imagem cadastrada</p>
+          <p style="font-size: 14px;">Clique em "Adicionar Imagem" para começar</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Informações Adicionais -->
+    <div class="info-box">
+      <p><strong>💡 Dica:</strong> Você pode adicionar até 10 imagens por serviço. A primeira imagem será usada como imagem principal.</p>
+    </div>
+  </div>
+
+  <!-- Modal de Opções de Imagem -->
+  <div id="modalOpcoesImagem" class="imagem-options-modal" onclick="fecharModalOpcoes(event)">
+    <div class="imagem-options-modal-content" onclick="event.stopPropagation()">
+      <div class="imagem-options-header">Opções da Imagem</div>
+      <ul class="imagem-options-list">
+        <li class="imagem-option-item">
+          <button class="imagem-option-btn add-option" onclick="abrirUploadNova()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Adicionar nova foto
+          </button>
+        </li>
+        <li class="imagem-option-item" id="optionAtualizar" style="display: none;">
+          <button class="imagem-option-btn edit-option" onclick="abrirUploadAtualizar()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            Atualizar esta foto
+          </button>
+        </li>
+        <li class="imagem-option-item" id="optionDeletar" style="display: none;">
+          <button class="imagem-option-btn delete-option" onclick="confirmarDeletar()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Deletar esta foto
+          </button>
+        </li>
+        <li class="imagem-option-item">
+          <button class="imagem-option-btn cancel-option" onclick="fecharModalOpcoes()">
+            Cancelar
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Modal de Upload -->
+  <div id="modalUploadImagem" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="fecharModalUpload()">&times;</span>
+      <h2 id="uploadTitulo">Adicionar Nova Foto</h2>
+      <form id="formUploadImagem" enctype="multipart/form-data">
+        <input type="hidden" id="imagemProdutoCodigo">
+        <input type="hidden" id="imagemIdAtualizar">
+        <div class="form-group">
+          <label>Selecionar Imagem *</label>
+          <input type="file" id="imagemFile" accept="image/*" required>
+          <small>Formatos aceitos: JPG, PNG, GIF (máx. 5MB)</small>
+        </div>
+        <div class="form-group">
+          <label>Descrição (opcional)</label>
+          <textarea id="imagemDescricao" rows="3" placeholder="Descreva a imagem..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" onclick="fecharModalUpload()">Cancelar</button>
+          <button type="submit" class="btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Preview -->
+  <div id="modalPreviewImagem" class="imagem-preview-modal" onclick="fecharPreview()">
+    <div class="imagem-preview-content" onclick="event.stopPropagation()">
+      <button class="imagem-preview-close" onclick="fecharPreview()">&times;</button>
+      <img id="previewImagemSrc" src="" alt="Preview">
+    </div>
+  </div>
+
+  <footer style="margin-top: 40px; padding: 20px; text-align: center; background: #f5f5f5;">
+    <p>Comercio e-commerce produtos "Seu Produto" ltda.</p>
+    <p>Endereço: Av. Brasil 1005, CEP 07352-090 centro, São Paulo, SP Brasil</p>
+  </footer>
+
+  <script src="js/index.js"></script>
+  <script src="addserviços.js"></script>
+</body>
+</html>
+
