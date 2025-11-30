@@ -1,12 +1,49 @@
-// Armazenamento temporário dos dados do anúncio
-let dadosAnuncio = {
-    tipoServico: null,
-    opcaoSelecionada: null,
-    metroQuadrado: null,
-    titulo: null,
-    descricao: null,
-    fotos: []
-};
+// Armazenamento temporário dos dados do anúncio (usando sessionStorage)
+function obterDadosAnuncio() {
+    const dadosStr = sessionStorage.getItem('dadosAnuncio');
+    if (dadosStr) {
+        try {
+            const dados = JSON.parse(dadosStr);
+            // Converter fotos de base64 para File objects se necessário
+            return dados;
+        } catch (err) {
+            console.warn('Erro ao ler dados do sessionStorage:', err);
+        }
+    }
+    return {
+        tipoServico: null,
+        opcaoSelecionada: null,
+        valor: null,
+        titulo: null,
+        descricao: null,
+        fotos: []
+    };
+}
+
+function salvarDadosAnuncio(dados) {
+    try {
+        // Salvar apenas dados não-binários no sessionStorage
+        const dadosParaSalvar = {
+            tipoServico: dados.tipoServico,
+            opcaoSelecionada: dados.opcaoSelecionada,
+            valor: dados.valor,
+            titulo: dados.titulo,
+            descricao: dados.descricao,
+            // Fotos serão mantidas em memória (não salvar no sessionStorage)
+            fotos: dados.fotos ? dados.fotos.map(f => f ? 'file' : null) : []
+        };
+        sessionStorage.setItem('dadosAnuncio', JSON.stringify(dadosParaSalvar));
+    } catch (err) {
+        console.warn('Erro ao salvar dados no sessionStorage:', err);
+    }
+}
+
+function limparDadosAnuncio() {
+    sessionStorage.removeItem('dadosAnuncio');
+}
+
+// Armazenamento temporário dos dados do anúncio (em memória)
+let dadosAnuncio = obterDadosAnuncio();
 
 // Histórico de navegação
 let historicoTelas = ['screen1'];
@@ -50,6 +87,145 @@ function verificarAcessoAnuncio() {
     }
 }
 
+// Sistema de dicas de preenchimento
+const DICAS_CAMPOS = {
+    'metro-quadrado-assentamento': {
+        titulo: 'Valor do m²',
+        conteudo: 'Digite apenas o valor numérico do metro quadrado. Exemplo: 30,00 ou 30. Não é necessário incluir "m²" ou "R$" no campo.'
+    },
+    'metro-quadrado-paredes': {
+        titulo: 'Valor do m²',
+        conteudo: 'Digite apenas o valor numérico do metro quadrado. Exemplo: 20,00 ou 20. Não é necessário incluir "m²" ou "R$" no campo.'
+    },
+    'metro-quadrado-portoes': {
+        titulo: 'Valor do m²',
+        conteudo: 'Digite apenas o valor numérico do metro quadrado. Exemplo: 40,00 ou 40. Não é necessário incluir "m²" ou "R$" no campo.'
+    },
+    'metro-quadrado-acabamentos': {
+        titulo: 'Valor do m²',
+        conteudo: 'Digite apenas o valor numérico do metro quadrado. Exemplo: 40,00 ou 40. Não é necessário incluir "m²" ou "R$" no campo.'
+    },
+    'titulo-assentamento': {
+        titulo: 'Título do Anúncio',
+        conteudo: 'Crie um título atrativo e claro. Exemplos: "Assentamento de Porcelanato Premium", "Instalação de Pisos Cerâmicos", "Revestimento de Alta Qualidade". Seja específico e use palavras-chave relevantes.'
+    },
+    'titulo-paredes': {
+        titulo: 'Título do Anúncio',
+        conteudo: 'Crie um título atrativo e claro. Exemplos: "Pintura de Paredes Internas", "Pintura Externa Residencial", "Serviço de Pintura Profissional". Seja específico e use palavras-chave relevantes.'
+    },
+    'titulo-portoes': {
+        titulo: 'Título do Anúncio',
+        conteudo: 'Crie um título atrativo e claro. Exemplos: "Pintura de Portões de Ferro", "Pintura de Portas de Madeira", "Restauração e Pintura de Portões". Seja específico e use palavras-chave relevantes.'
+    },
+    'titulo-acabamentos': {
+        titulo: 'Título do Anúncio',
+        conteudo: 'Crie um título atrativo e claro. Exemplos: "Instalação de Papel de Parede", "Aplicação de Molduras de Gesso", "Instalação de Rodapés". Seja específico e use palavras-chave relevantes.'
+    },
+    'descricao-assentamento': {
+        titulo: 'Descrição do Serviço',
+        conteudo: 'Descreva detalhadamente o serviço oferecido. Inclua: tipo de material usado, experiência do profissional, garantia oferecida, tempo de execução, e qualquer informação relevante que possa atrair clientes.'
+    },
+    'descricao-paredes': {
+        titulo: 'Descrição do Serviço',
+        conteudo: 'Descreva detalhadamente o serviço oferecido. Inclua: tipo de tinta usada, preparação da superfície, número de demãos, experiência do profissional, garantia oferecida, e tempo de execução.'
+    },
+    'descricao-portoes': {
+        titulo: 'Descrição do Serviço',
+        conteudo: 'Descreva detalhadamente o serviço oferecido. Inclua: tipo de tinta/verniz usado, preparação da superfície, proteção contra ferrugem (para ferro), experiência do profissional, garantia oferecida, e tempo de execução.'
+    },
+    'descricao-acabamentos': {
+        titulo: 'Descrição do Serviço',
+        conteudo: 'Descreva detalhadamente o serviço oferecido. Inclua: tipo de material usado, técnica de aplicação, experiência do profissional, garantia oferecida, tempo de execução, e cuidados especiais necessários.'
+    }
+};
+
+// Verificar se dica foi fechada pelo usuário
+function dicaFechada(campoId) {
+    const dicasFechadas = JSON.parse(localStorage.getItem('dicasFechadas') || '[]');
+    return dicasFechadas.includes(campoId);
+}
+
+// Marcar dica como fechada
+function fecharDica(campoId) {
+    const dicasFechadas = JSON.parse(localStorage.getItem('dicasFechadas') || '[]');
+    if (!dicasFechadas.includes(campoId)) {
+        dicasFechadas.push(campoId);
+        localStorage.setItem('dicasFechadas', JSON.stringify(dicasFechadas));
+    }
+    // Esconder a dica
+    const hint = document.getElementById(`hint-${campoId}`);
+    if (hint) {
+        hint.classList.remove('show');
+    }
+}
+
+// Criar elemento de dica
+function criarDica(campoId) {
+    const dica = DICAS_CAMPOS[campoId];
+    if (!dica) return null;
+    
+    // Verificar se já foi fechada
+    if (dicaFechada(campoId)) return null;
+    
+    const hintDiv = document.createElement('div');
+    hintDiv.id = `hint-${campoId}`;
+    hintDiv.className = 'field-hint';
+    hintDiv.innerHTML = `
+        <div class="field-hint-header">
+            <div class="field-hint-title">${dica.titulo}</div>
+            <button class="field-hint-close" onclick="fecharDica('${campoId}')" aria-label="Fechar dica">×</button>
+        </div>
+        <div class="field-hint-content">${dica.conteudo}</div>
+    `;
+    
+    return hintDiv;
+}
+
+// Inicializar sistema de dicas
+function inicializarDicas() {
+    // Adicionar dicas para todos os campos
+    Object.keys(DICAS_CAMPOS).forEach(campoId => {
+        const campo = document.getElementById(campoId);
+        if (!campo) return;
+        
+        // Criar container de dica
+        const hint = criarDica(campoId);
+        if (!hint) return;
+        
+        // Adicionar dica ao form-group
+        const formGroup = campo.closest('.form-group');
+        if (formGroup) {
+            formGroup.appendChild(hint);
+        }
+        
+        // Mostrar dica ao focar no campo
+        campo.addEventListener('focus', () => {
+            if (!dicaFechada(campoId)) {
+                hint.classList.add('show');
+            }
+        });
+        
+        // Esconder dica ao sair do campo (após um pequeno delay)
+        campo.addEventListener('blur', () => {
+            setTimeout(() => {
+                // Só esconder se não estiver com mouse sobre a dica
+                if (!hint.matches(':hover')) {
+                    hint.classList.remove('show');
+                }
+            }, 200);
+        });
+        
+        // Manter dica visível quando mouse estiver sobre ela
+        hint.addEventListener('mouseenter', () => {
+            hint.classList.add('show');
+        });
+        
+        hint.addEventListener('mouseleave', () => {
+            hint.classList.remove('show');
+        });
+    });
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     // Verificar acesso ANTES de carregar qualquer coisa
@@ -64,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarTela1();
     inicializarOpcoes();
     inicializarFotos();
+    inicializarDicas();
 });
 
 // Carregar imagens diretamente (fallback imediato)
@@ -190,6 +367,7 @@ function inicializarOpcoes() {
             // Selecionar opção clicada
             btn.classList.add('selected');
             dadosAnuncio.opcaoSelecionada = btn.dataset.opcao;
+            salvarDadosAnuncio(dadosAnuncio);
         });
     });
 }
@@ -337,6 +515,7 @@ function salvarDadosTelaAtual() {
     
     if (telaId === 'screen1') {
         // Dados já salvos no click do card
+        salvarDadosAnuncio(dadosAnuncio);
         return;
     }
     
@@ -348,22 +527,25 @@ function salvarDadosTelaAtual() {
     
     // Salvar campos de texto baseado no tipo de tela
     if (telaId.includes('assentamento')) {
-        dadosAnuncio.metroQuadrado = document.getElementById('metro-quadrado-assentamento')?.value || null;
+        dadosAnuncio.valor = document.getElementById('metro-quadrado-assentamento')?.value || null;
         dadosAnuncio.titulo = document.getElementById('titulo-assentamento')?.value || null;
         dadosAnuncio.descricao = document.getElementById('descricao-assentamento')?.value || null;
     } else if (telaId.includes('pintura-paredes')) {
-        dadosAnuncio.metroQuadrado = document.getElementById('metro-quadrado-paredes')?.value || null;
+        dadosAnuncio.valor = document.getElementById('metro-quadrado-paredes')?.value || null;
         dadosAnuncio.titulo = document.getElementById('titulo-paredes')?.value || null;
         dadosAnuncio.descricao = document.getElementById('descricao-paredes')?.value || null;
     } else if (telaId.includes('pintura-portoes')) {
-        dadosAnuncio.metroQuadrado = document.getElementById('metro-quadrado-portoes')?.value || null;
+        dadosAnuncio.valor = document.getElementById('metro-quadrado-portoes')?.value || null;
         dadosAnuncio.titulo = document.getElementById('titulo-portoes')?.value || null;
         dadosAnuncio.descricao = document.getElementById('descricao-portoes')?.value || null;
     } else if (telaId.includes('acabamentos')) {
-        dadosAnuncio.metroQuadrado = document.getElementById('metro-quadrado-acabamentos')?.value || null;
+        dadosAnuncio.valor = document.getElementById('metro-quadrado-acabamentos')?.value || null;
         dadosAnuncio.titulo = document.getElementById('titulo-acabamentos')?.value || null;
         dadosAnuncio.descricao = document.getElementById('descricao-acabamentos')?.value || null;
     }
+    
+    // Salvar no sessionStorage
+    salvarDadosAnuncio(dadosAnuncio);
 }
 
 // Carregar dados na tela
@@ -427,8 +609,14 @@ async function salvarAnuncio() {
         return;
     }
     
-    if (!dadosAnuncio.titulo) {
+    if (!dadosAnuncio.titulo || dadosAnuncio.titulo.trim() === '') {
         alert('Por favor, preencha o título do anúncio.');
+        voltarTela('fotos');
+        return;
+    }
+    
+    if (!dadosAnuncio.descricao || dadosAnuncio.descricao.trim() === '') {
+        alert('Por favor, preencha a descrição do anúncio.');
         voltarTela('fotos');
         return;
     }
@@ -440,7 +628,7 @@ async function salvarAnuncio() {
         return;
     }
     
-    // Preparar dados
+    // Preparar dados conforme estrutura das tabelas
     const tipoServicoMap = {
         'assentamento': 'Assentamento de Pisos, Revestimentos e Porcelanatos',
         'pintura-paredes': 'Pintura de Paredes',
@@ -450,14 +638,14 @@ async function salvarAnuncio() {
     
     const formData = new FormData();
     formData.append('tipo_servico', tipoServicoMap[dadosAnuncio.tipoServico]);
-    formData.append('servico', dadosAnuncio.opcaoSelecionada);
-    formData.append('titulo_servico', dadosAnuncio.titulo);
-    formData.append('descricao_servico', dadosAnuncio.descricao || '');
-    formData.append('valor_servico', extrairValor(dadosAnuncio.metroQuadrado));
+    formData.append('especialidade', dadosAnuncio.opcaoSelecionada);
+    formData.append('valor', extrairValor(dadosAnuncio.valor));
+    formData.append('titulo_anuncio', dadosAnuncio.titulo.trim());
+    formData.append('descricao_anuncio', dadosAnuncio.descricao.trim());
     
-    // Adicionar fotos
+    // Adicionar fotos (File objects)
     dadosAnuncio.fotos.forEach((foto, index) => {
-        if (foto) {
+        if (foto && foto instanceof File) {
             formData.append('fotos', foto);
         }
     });
@@ -476,10 +664,11 @@ async function salvarAnuncio() {
         if (response.ok) {
             alert('Anúncio criado com sucesso!');
             // Limpar dados temporários
+            limparDadosAnuncio();
             dadosAnuncio = {
                 tipoServico: null,
                 opcaoSelecionada: null,
-                metroQuadrado: null,
+                valor: null,
                 titulo: null,
                 descricao: null,
                 fotos: []
@@ -510,4 +699,7 @@ function extrairValor(texto) {
     
     return isNaN(valor) ? 0 : valor;
 }
+
+// Tornar função fecharDica global para uso no onclick
+window.fecharDica = fecharDica;
 
