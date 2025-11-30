@@ -219,6 +219,7 @@ function checkLoginStatus() {
   document.addEventListener('DOMContentLoaded', () => {
     checkLoginStatus();
     carregarImagemProduto1();
+    inicializarFavoritos();
   });
 
 // Função para carregar a primeira imagem do produto1 do banco de dados
@@ -259,4 +260,51 @@ async function carregarImagemProduto1() {
     console.warn('⚠️ Erro ao carregar imagem do produto1 do banco, usando imagem padrão:', err);
     // A imagem padrão já está definida no HTML, então não precisa fazer nada
   }
+}
+
+// ===============================================
+// SISTEMA DE FAVORITOS COM BAÚ
+// ===============================================
+
+// Função para verificar se produto está favoritado
+function isFavoritado(produtoId) {
+  const favoritos = JSON.parse(localStorage.getItem('produtosFavoritos') || '[]');
+  return favoritos.includes(produtoId);
+}
+
+// Função para adicionar/remover favorito
+function toggleFavorito(event, produtoId) {
+  // Prevenir que o clique no botão abra o link do produto
+  event.stopPropagation();
+  
+  // Toggle favorito
+  let favoritos = JSON.parse(localStorage.getItem('produtosFavoritos') || '[]');
+  const index = favoritos.indexOf(produtoId);
+  
+  if (index > -1) {
+    // Remover favorito
+    favoritos.splice(index, 1);
+    event.currentTarget.classList.remove('favoritado');
+  } else {
+    // Adicionar favorito
+    favoritos.push(produtoId);
+    event.currentTarget.classList.add('favoritado');
+  }
+  
+  localStorage.setItem('produtosFavoritos', JSON.stringify(favoritos));
+}
+
+// Função para inicializar favoritos ao carregar a página
+function inicializarFavoritos() {
+  // Marcar produtos já favoritados
+  const favoritos = JSON.parse(localStorage.getItem('produtosFavoritos') || '[]');
+  favoritos.forEach(produtoId => {
+    const produtoCard = document.querySelector(`[data-produto-id="${produtoId}"]`);
+    if (produtoCard) {
+      const favoritoBtn = produtoCard.querySelector('.favorito-btn');
+      if (favoritoBtn) {
+        favoritoBtn.classList.add('favoritado');
+      }
+    }
+  });
 }

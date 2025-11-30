@@ -810,29 +810,30 @@ app.get('/api/imagens/:nome', async (req, res) => {
     );
     
     if (result.rows.length === 0) {
+      // Se não encontrou na tabela, usar fallback para ampulheta
+      if (nome && nome.toLowerCase() === 'ampulheta') {
+        const fallbackAmpulheta = process.env.AMPULHETA_URL || 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/ampulheta.gif';
+        return res.json({ url_imagem: fallbackAmpulheta, tipo_arquivo: 'gif', descricao: 'fallback: ampulheta pública' });
+      }
       return res.status(404).json({ error: 'Imagem não encontrada.' });
     }
     
     res.json(result.rows[0]);
   } catch (err) {
-    // Log detalhado para debugging
-    console.error('Erro ao buscar imagem:', err);
-
-    // Fallback seguro para a imagem 'ampulheta' quando houver qualquer problema
-    // (ex: tabela ausente 42P01, problemas de permissão, timeout, etc.).
-    // Usamos uma URL pública do Supabase ou a variável de ambiente AMPULHETA_URL
-    // se estiver definida. Isso evita 500s no frontend sem afetar outras rotas.
-    try {
+    // Se a tabela não existe (código 42P01) ou outro erro, usar fallback para ampulheta
+    if (err.code === '42P01' || (err.message && err.message.includes('does not exist'))) {
       const { nome } = req.params;
       const fallbackAmpulheta = process.env.AMPULHETA_URL || 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/ampulheta.gif';
       if (nome && nome.toLowerCase() === 'ampulheta') {
+        // Não logar erro quando a tabela não existe e estamos usando fallback
         return res.json({ url_imagem: fallbackAmpulheta, tipo_arquivo: 'gif', descricao: 'fallback: ampulheta pública' });
       }
-    } catch (innerErr) {
-      console.error('Erro ao aplicar fallback para ampulheta:', innerErr);
+      // Para outras imagens quando a tabela não existe, retornar 404
+      return res.status(404).json({ error: 'Tabela de imagens não configurada. Imagem não encontrada.' });
     }
 
-    // Para outros casos (não-ampulheta), manter o erro 500 com mensagem.
+    // Log detalhado apenas para outros erros
+    console.error('Erro ao buscar imagem:', err);
     res.status(500).json({ error: 'Erro ao buscar imagem: ' + (err.message || String(err)) });
   }
 });
@@ -845,6 +846,10 @@ app.get('/api/imagens', async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
+    // Se a tabela não existe, retornar array vazio ao invés de erro
+    if (err.code === '42P01' || (err.message && err.message.includes('does not exist'))) {
+      return res.json([]);
+    }
     console.error('Erro ao listar imagens:', err);
     res.status(500).json({ error: 'Erro ao listar imagens.' });
   }
