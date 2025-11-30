@@ -21,17 +21,37 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Verificar se deve mostrar o botão Editar (apenas para usuários logados)
+// Verificar se deve mostrar o botão Editar (apenas para usuários logados que NÃO são Clientes)
 function verificarVisibilidadeBotaoEditar() {
-  const usuario = JSON.parse(localStorage.getItem('usuario'));
+  const usuarioStr = localStorage.getItem('usuario');
   const btnEditar = document.querySelector('.btn-editar-produto');
+  const btnAdicionarFotos = document.getElementById('btnAdicionarFotosProduto');
   
-  if (btnEditar) {
-    if (usuario) {
-      btnEditar.style.display = 'inline-flex';
+  if (!usuarioStr) {
+    // Não logado - esconder tudo
+    if (btnEditar) btnEditar.style.display = 'none';
+    if (btnAdicionarFotos) btnAdicionarFotos.style.display = 'none';
+    return;
+  }
+  
+  try {
+    const usuario = JSON.parse(usuarioStr);
+    const perfilId = usuario.perfil || 2; // 1=Master, 2=Cliente, 3=Profissional
+    
+    // Cliente (perfil 2) não pode editar
+    if (perfilId === 2) {
+      if (btnEditar) btnEditar.style.display = 'none';
+      if (btnAdicionarFotos) btnAdicionarFotos.style.display = 'none';
     } else {
-      btnEditar.style.display = 'none';
+      // Master ou Profissional podem editar
+      if (btnEditar) btnEditar.style.display = 'inline-flex';
+      if (btnAdicionarFotos) btnAdicionarFotos.style.display = 'block';
     }
+  } catch (err) {
+    console.error('Erro ao verificar perfil:', err);
+    // Em caso de erro, esconder por segurança
+    if (btnEditar) btnEditar.style.display = 'none';
+    if (btnAdicionarFotos) btnAdicionarFotos.style.display = 'none';
   }
 }
 

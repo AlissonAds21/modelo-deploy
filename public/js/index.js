@@ -1,23 +1,12 @@
 // Função para buscar URL da ampulheta do banco de dados
-// Comportamento: tenta a rota local '/api/imagens/ampulheta' e, se falhar,
-// retorna a URL pública do Supabase (inserida manualmente) como fallback.
+// Usa diretamente a URL do Supabase que está funcionando perfeitamente
 async function buscarUrlAmpulheta() {
-  // URL pública do Supabase (conforme informado)
+  // URL pública do Supabase (funcionando perfeitamente)
   const supabaseAmpulhetaUrl = 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/ampulheta.gif';
-
-  try {
-    const response = await fetch('/api/imagens/ampulheta');
-    if (response.ok) {
-      const data = await response.json();
-      if (data && data.url_imagem) return data.url_imagem;
-    }
-    // Se não houver resposta válida do backend, usar fallback público
-    return supabaseAmpulhetaUrl;
-  } catch (err) {
-    // Se a rota /api falhar (ex: tabela ausente), usar diretamente a URL do Supabase
-    console.warn('⚠️ Erro ao buscar URL da ampulheta do banco (usando fallback Supabase):', err);
-    return supabaseAmpulhetaUrl;
-  }
+  
+  // Retornar diretamente a URL do Supabase (já está funcionando)
+  // Removida a tentativa de buscar da API para evitar erro 404 desnecessário
+  return supabaseAmpulhetaUrl;
 }
 
 // Função para verificar expiração de sessão (1 hora de inatividade)
@@ -157,6 +146,35 @@ function checkLoginStatus() {
 
     // Buscar informações completas do usuário (perfil e status)
     const nomePerfil = usuario.nomePerfil || 'Cliente';
+    const perfilId = usuario.perfil || 2; // 1=Master, 2=Cliente, 3=Profissional
+    
+    // Determinar botões baseado no perfil
+    let botoesHTML = '';
+    if (perfilId === 2) {
+      // Perfil Cliente
+      botoesHTML = `
+        <div class="buttons-row">
+          <button onclick="location.href='minha-conta.html'">Minha Conta</button>
+          <button onclick="logout()">Sair</button>
+        </div>
+        <div class="buttons-row">
+          <button onclick="location.href='minhas-compras.html'">Minhas Compras</button>
+          <button onclick="location.href='meus-favoritos.html'">Meus Favoritos</button>
+        </div>
+      `;
+    } else {
+      // Perfil Profissional (3) ou Master (1)
+      botoesHTML = `
+        <div class="buttons-row">
+          <button onclick="location.href='minha-conta.html'">Minha Conta</button>
+          <button onclick="logout()">Sair</button>
+        </div>
+        <div class="buttons-row">
+          <button onclick="location.href='anuncio.html'">Anuncie</button>
+          <button onclick="location.href='minhas-mensagens.html'">Minhas Mensagens</button>
+        </div>
+      `;
+    }
     
     // Construir HTML de usuário logado (usa ampulheta encontrada ou não)
     document.getElementById('authButtons').innerHTML = `
@@ -172,18 +190,15 @@ function checkLoginStatus() {
         <!-- Informações do usuário ao lado da foto -->
         <div class="user-info">
           <div class="user-status-row">
-            <span class="status-text">${ampulhetaImgTag || `<img src="imagens/ampulheta.gif" alt="Ampulheta" class="hourglass-icon" onerror="this.style.display='none'">`} Status Logado</span>
+            <span class="status-text">${ampulhetaImgTag || ''} Status Logado</span>
           </div>
           <div class="user-name">${usuario.nome}!</div>
-          <div class="user-perfil">Perfil: ${nomePerfil}</div>
+          <div class="user-perfil">Perfil: <strong>${nomePerfil}</strong></div>
         </div>
         
         <!-- Botões à direita -->
         <div class="user-actions">
-          <div class="buttons-row">
-            <button onclick="location.href='minha-conta.html'">Minha Conta</button>
-            <button onclick="logout()">Sair</button>
-          </div>
+          ${botoesHTML}
         </div>
       </div>
     `;
@@ -191,6 +206,36 @@ function checkLoginStatus() {
     console.warn('Erro ao buscar ampulheta:', err);
     // Em caso de erro ao obter ampulheta, renderizar interface sem a ampulheta
     const nomePerfil = usuario.nomePerfil || 'Cliente';
+    const perfilId = usuario.perfil || 2;
+    
+    // Determinar botões baseado no perfil
+    let botoesHTML = '';
+    if (perfilId === 2) {
+      // Perfil Cliente
+      botoesHTML = `
+        <div class="buttons-row">
+          <button onclick="location.href='minha-conta.html'">Minha Conta</button>
+          <button onclick="logout()">Sair</button>
+        </div>
+        <div class="buttons-row">
+          <button onclick="location.href='minhas-compras.html'">Minhas Compras</button>
+          <button onclick="location.href='meus-favoritos.html'">Meus Favoritos</button>
+        </div>
+      `;
+    } else {
+      // Perfil Profissional (3) ou Master (1)
+      botoesHTML = `
+        <div class="buttons-row">
+          <button onclick="location.href='minha-conta.html'">Minha Conta</button>
+          <button onclick="logout()">Sair</button>
+        </div>
+        <div class="buttons-row">
+          <button onclick="location.href='anuncio.html'">Anuncie</button>
+          <button onclick="location.href='minhas-mensagens.html'">Minhas Mensagens</button>
+        </div>
+      `;
+    }
+    
     document.getElementById('authButtons').innerHTML = `
       <div class="logged-user-container">
         <div class="user-avatar">
@@ -198,16 +243,13 @@ function checkLoginStatus() {
         </div>
         <div class="user-info">
           <div class="user-status-row">
-            <span class="status-text"><img src="imagens/ampulheta.gif" alt="Ampulheta" class="hourglass-icon" onerror="this.style.display='none'"> Status Logado</span>
+            <span class="status-text">${ampulhetaImgTag || ''} Status Logado</span>
           </div>
           <div class="user-name">${usuario.nome}!</div>
-          <div class="user-perfil">Perfil: ${nomePerfil}</div>
+          <div class="user-perfil">Perfil: <strong>${nomePerfil}</strong></div>
         </div>
         <div class="user-actions">
-          <div class="buttons-row">
-            <button onclick="location.href='minha-conta.html'">Minha Conta</button>
-            <button onclick="logout()">Sair</button>
-          </div>
+          ${botoesHTML}
         </div>
       </div>
     `;
@@ -250,21 +292,27 @@ async function carregarUltimasPostagens() {
       card.className = 'service-card';
       
       if (produto) {
-        // Card com produto
+        // Card com produto/serviço
+        const titulo = produto.titulo || produto.produto || 'Sem título';
+        const tipo = produto.tipo || 'produto';
+        
         card.innerHTML = `
           <div class="service-card-content">
-            ${produto.imagem ? `<img src="${produto.imagem}" alt="${produto.produto}" class="service-card-image" onerror="this.style.display='none'">` : ''}
-            <h4 class="service-card-title">${produto.produto || 'Produto sem nome'}</h4>
+            ${produto.imagem ? `<img src="${produto.imagem}" alt="${titulo}" class="service-card-image" onerror="this.style.display='none'">` : ''}
+            <h4 class="service-card-title">${titulo}</h4>
             ${produto.marca ? `<p class="service-card-marca" style="font-size: 12px; color: #666; margin: 4px 0;">${produto.marca}</p>` : ''}
             ${produto.valor_venda > 0 ? `<p class="service-card-price">R$ ${produto.valor_venda.toFixed(2).replace('.', ',')}</p>` : ''}
           </div>
         `;
-        // Adicionar link para produto se tiver código
-        if (produto.codigo_produto) {
+        // Adicionar link se for produto
+        if (tipo === 'produto' && produto.codigo_produto) {
           card.style.cursor = 'pointer';
           card.addEventListener('click', () => {
             window.location.href = `produto${produto.codigo_produto}.html`;
           });
+        } else if (tipo === 'servico') {
+          // Serviços podem ter link futuro ou apenas visualização
+          card.style.cursor = 'default';
         }
       } else {
         // Card vazio com ícone de bloqueio
