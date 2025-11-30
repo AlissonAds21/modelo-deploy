@@ -480,14 +480,27 @@ app.get('/api/usuarios/:id', verificarToken, async (req, res) => {
       return res.status(403).json({ error: 'Acesso negado.' });
     }
     
-    const result = await pool.query(
-      `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
-              u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
-       FROM cadastro_usuario u
-       LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
-       WHERE u.id = $1`,
-      [id]
-    );
+    let result;
+    try {
+      result = await pool.query(
+        `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
+                u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
+         FROM cadastro_usuario u
+         LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+         WHERE u.id = $1`,
+        [id]
+      );
+    } catch (colError) {
+      // Se der erro, tentar sem aspas (minúsculo)
+      result = await pool.query(
+        `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
+                u.fotoperfil, p.perfil as nome_perfil
+         FROM cadastro_usuario u
+         LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+         WHERE u.id = $1`,
+        [id]
+      );
+    }
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Usuário não encontrado.' });
@@ -497,6 +510,173 @@ app.get('/api/usuarios/:id', verificarToken, async (req, res) => {
   } catch (err) {
     console.error('Erro ao buscar usuário:', err);
     res.status(500).json({ error: 'Erro ao buscar usuário.' });
+  }
+});
+
+// Atualizar dados do usuário (nome, CPF, email, senha, foto)
+app.put('/api/usuarios/:id', verificarToken, upload.single('fotoPerfil'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome, cpf, email, senha } = req.body;
+    
+    // Verificar se o usuário pode atualizar (só pode atualizar a si mesmo, exceto Master)
+    if (req.userPerfil !== 1 && parseInt(id) !== req.userId) {
+      return res.status(403).json({ error: 'Acesso negado. Você só pode atualizar seus próprios dados.' });
+    }
+    
+    // Verificar se usuário existe
+    const userCheck = await pool.query(
+      'SELECT id, nome FROM cadastro_usuario WHERE id = $1',
+      [id]
+    );
+    
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    // Preparar campos para atualização
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+    
+    if (nome) {
+      updates.push(`nome = $${paramIndex++}`);
+      values.push(nome);
+    }
+    
+    if (cpf) {
+      // Verificar se CPF já existe para outro usuário
+      const cpfCheck = await pool.query(
+        'SELECT id FROM cadastro_usuario WHERE cpf = $1 AND id != $2',
+        [cpf, id]
+      );
+      if (cpfCheck.rows.length > 0) {
+        return res.status(409).json({ error: 'CPF já cadastrado para outro usuário.' });
+      }
+      updates.push(`cpf = $${paramIndex++}`);
+      values.push(cpf);
+    }
+    
+    if (email) {
+      // Verificar se email já existe para outro usuário
+      const emailCheck = await pool.query(
+        'SELECT id FROM cadastro_usuario WHERE LOWER(email) = LOWER($1) AND id != $2',
+        [email, id]
+      );
+      if (emailCheck.rows.length > 0) {
+        return res.status(409).json({ error: 'E-mail já cadastrado para outro usuário.' });
+      }
+      updates.push(`email = $${paramIndex++}`);
+      values.push(email);
+    }
+    
+    if (senha) {
+      const hashSenha = await bcrypt.hash(senha, 10);
+      updates.push(`senha = $${paramIndex++}`);
+      values.push(hashSenha);
+    }
+    
+    // Processar upload de foto
+    let fotoPerfilUrl = null;
+    if (req.file && supabase) {
+      // Função para sanitizar nome do arquivo
+      function sanitizeFileName(name) {
+        const normalized = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const sanitized = normalized.replace(/[^a-zA-Z0-9._-]/g, '-');
+        return sanitized.replace(/-+/g, '-').replace(/^-|-$/g, '');
+      }
+      
+      const fileExtension = req.file.originalname.split('.').pop() || 'jpg';
+      const sanitizedName = sanitizeFileName(req.file.originalname.replace(/\.[^/.]+$/, ''));
+      const fileName = `${id}-${Date.now()}-${sanitizedName}.${fileExtension}`;
+      
+      const { data, error } = await supabase.storage
+        .from('uploads')
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false
+        });
+
+      if (error) {
+        console.error('❌ Erro no upload do Supabase:', error.message);
+        return res.status(500).json({ error: 'Erro ao salvar imagem: ' + error.message });
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(fileName);
+      
+      fotoPerfilUrl = publicUrl;
+      
+      if (fotoPerfilUrl && fotoPerfilUrl.includes('/upload/s/')) {
+        fotoPerfilUrl = fotoPerfilUrl.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+      }
+      
+      // Adicionar foto aos updates
+      try {
+        updates.push(`"fotoPerfil" = $${paramIndex++}`);
+        values.push(fotoPerfilUrl);
+      } catch (colError) {
+        updates.push(`fotoperfil = $${paramIndex++}`);
+        values.push(fotoPerfilUrl);
+      }
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo para atualizar.' });
+    }
+    
+    // Adicionar ID aos valores
+    values.push(id);
+    
+    // Executar update
+    let updateQuery;
+    try {
+      updateQuery = `UPDATE cadastro_usuario SET ${updates.join(', ')} WHERE id = $${paramIndex}`;
+      await pool.query(updateQuery, values);
+    } catch (updateError) {
+      // Se der erro com "fotoPerfil", tentar com "fotoperfil"
+      if (updateError.code === '42703' || updateError.message.includes('does not exist')) {
+        const updatesFixed = updates.map(u => u.replace('"fotoPerfil"', 'fotoperfil'));
+        updateQuery = `UPDATE cadastro_usuario SET ${updatesFixed.join(', ')} WHERE id = $${paramIndex}`;
+        await pool.query(updateQuery, values);
+      } else {
+        throw updateError;
+      }
+    }
+    
+    // Registrar histórico
+    await registrarHistorico(parseInt(id), 'Dados atualizados pelo próprio usuário');
+    
+    // Buscar dados atualizados
+    let result;
+    try {
+      result = await pool.query(
+        `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
+                u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
+         FROM cadastro_usuario u
+         LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+         WHERE u.id = $1`,
+        [id]
+      );
+    } catch (colError) {
+      result = await pool.query(
+        `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
+                u.fotoperfil, p.perfil as nome_perfil
+         FROM cadastro_usuario u
+         LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+         WHERE u.id = $1`,
+        [id]
+      );
+    }
+    
+    res.json({
+      message: 'Dados atualizados com sucesso!',
+      usuario: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Erro ao atualizar usuário:', err);
+    res.status(500).json({ error: 'Erro ao atualizar usuário.' });
   }
 });
 
@@ -635,6 +815,56 @@ app.get('/api/usuarios/:id/historico', verificarToken, async (req, res) => {
   } catch (err) {
     console.error('Erro ao buscar histórico:', err);
     res.status(500).json({ error: 'Erro ao buscar histórico.' });
+  }
+});
+
+// Buscar últimos 8 produtos/serviços para exibir na seção "Últimas Postagens Atualizadas"
+app.get('/api/produtos/ultimos', async (req, res) => {
+  try {
+    // Buscar últimos 8 produtos ativos ordenados por código (assumindo que códigos maiores são mais recentes)
+    const result = await pool.query(`
+      SELECT 
+        p.codigo_produto,
+        p.produto,
+        p.marca,
+        COALESCE(p.valor_venda, 0) AS valor_venda,
+        p.ativo
+      FROM produto p
+      WHERE (p.ativo = TRUE OR p.ativo IS NULL)
+      ORDER BY p.codigo_produto DESC
+      LIMIT 8
+    `);
+    
+    // Para cada produto, buscar a primeira imagem se existir
+    const produtosComImagens = await Promise.all(
+      result.rows.map(async (produto) => {
+        try {
+          const imgResult = await pool.query(
+            `SELECT url_imagem FROM produto_imagens 
+             WHERE codigo_produto = $1 AND ativo = TRUE 
+             ORDER BY ordem ASC, id_imagem ASC 
+             LIMIT 1`,
+            [produto.codigo_produto]
+          );
+          
+          return {
+            ...produto,
+            imagem: imgResult.rows.length > 0 ? imgResult.rows[0].url_imagem : null
+          };
+        } catch (imgError) {
+          // Se a tabela produto_imagens não existir, retornar sem imagem
+          return {
+            ...produto,
+            imagem: null
+          };
+        }
+      })
+    );
+    
+    res.json(produtosComImagens);
+  } catch (err) {
+    console.error('Erro ao buscar últimos produtos:', err);
+    res.status(500).json({ error: 'Erro ao buscar últimos produtos.' });
   }
 });
 

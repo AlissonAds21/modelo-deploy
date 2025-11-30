@@ -28,3 +28,4 @@ COMMENT ON COLUMN servicos.valor_servico IS 'Valor do serviço';
 SELECT 'Tabela servicos criada com sucesso!' AS status;
 SELECT * FROM servicos LIMIT 1;
 
+

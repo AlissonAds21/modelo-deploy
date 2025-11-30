@@ -226,12 +226,79 @@ function checkLoginStatus() {
     limparSessao();
     location.reload();
   }
+
+// Função para carregar últimas postagens atualizadas
+async function carregarUltimasPostagens() {
+  const updatesGrid = document.getElementById('updatesGrid');
+  if (!updatesGrid) return;
+  
+  try {
+    const response = await fetch('/api/produtos/ultimos');
+    if (!response.ok) {
+      throw new Error('Erro ao buscar últimas postagens');
+    }
+    
+    const produtos = await response.json();
+    
+    // Limpar grid
+    updatesGrid.innerHTML = '';
+    
+    // Criar 8 cards (preencher com produtos ou deixar vazios)
+    for (let i = 0; i < 8; i++) {
+      const produto = produtos[i];
+      const card = document.createElement('div');
+      card.className = 'service-card';
+      
+      if (produto) {
+        // Card com produto
+        card.innerHTML = `
+          <div class="service-card-content">
+            ${produto.imagem ? `<img src="${produto.imagem}" alt="${produto.produto}" class="service-card-image" onerror="this.style.display='none'">` : ''}
+            <h4 class="service-card-title">${produto.produto || 'Produto sem nome'}</h4>
+            ${produto.marca ? `<p class="service-card-marca" style="font-size: 12px; color: #666; margin: 4px 0;">${produto.marca}</p>` : ''}
+            ${produto.valor_venda > 0 ? `<p class="service-card-price">R$ ${produto.valor_venda.toFixed(2).replace('.', ',')}</p>` : ''}
+          </div>
+        `;
+        // Adicionar link para produto se tiver código
+        if (produto.codigo_produto) {
+          card.style.cursor = 'pointer';
+          card.addEventListener('click', () => {
+            window.location.href = `produto${produto.codigo_produto}.html`;
+          });
+        }
+      } else {
+        // Card vazio com ícone de bloqueio
+        card.classList.add('locked');
+        card.innerHTML = `
+          <span class="lock-icon">🔒</span>
+          <div class="service-card-content"></div>
+        `;
+      }
+      
+      updatesGrid.appendChild(card);
+    }
+  } catch (err) {
+    console.error('Erro ao carregar últimas postagens:', err);
+    // Em caso de erro, mostrar 8 cards vazios
+    updatesGrid.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+      const card = document.createElement('div');
+      card.className = 'service-card locked';
+      card.innerHTML = `
+        <span class="lock-icon">🔒</span>
+        <div class="service-card-content"></div>
+      `;
+      updatesGrid.appendChild(card);
+    }
+  }
+}
   
   // Executa ao carregar a página
   document.addEventListener('DOMContentLoaded', () => {
     checkLoginStatus();
     carregarImagemProduto1();
     inicializarFavoritos();
+    carregarUltimasPostagens();
   });
 
 // Função para carregar a primeira imagem do produto1 do banco de dados
