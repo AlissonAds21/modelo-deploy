@@ -5,11 +5,11 @@
     box-sizing: border-box;
 }
 
-/* Estilo base do corpo da página */
+/* Estilo base do corpo da página - padronizado com index.html */
 body {
-    font-family: Arial, sans-serif; /* Fonte legível */
-    background-color: #e6f2ff; /* Fundo azul claro suave */
-    color: #333; /* Cor padrão do texto */
+    font-family: Arial, sans-serif;
+    background-color: #ffffff; /* Fundo branco como index.html */
+    color: #001f3f; /* Texto azul-marinho escuro */
 }
 
 /* Estiliza o contêiner do ícone "Home" */
@@ -19,20 +19,27 @@ body {
     margin: 20px 0 0 20px; /* Margem superior e esquerda */
 }
 
-/* Estiliza o link "Home" como um bloco flexível com ícone e texto alinhados, sem sublinhado e com destaque visual */
+/* Estiliza o link "Home" - padronizado com index.html e login.html */
 .home-link {
-    text-decoration: none; /* Remove o sublinhado padrão dos links */
-    display: flex; /* Ativa layout flexível para alinhar ícone e texto lado a lado */
-    align-items: center; /* Centraliza verticalmente o conteúdo do link */
-    color: #4169e1; /* Define a cor do texto do link (azul royal) */
-    font-weight: bold; /* Deixa o texto em negrito */
-    font-size: 1.2em; /* Aumenta o tamanho da fonte em 20% em relação ao padrão */
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #587bfa; /* Azul-roxo como index.html */
+    font-weight: bold;
+    font-size: 1.2em;
+    transition: color 0.2s ease;
+}
+
+.home-link:hover {
+    color: #4568dc; /* Tom mais escuro no hover */
 }
 
 /* Estiliza o ícone SVG dentro do link "Home" */
 .home-svg {
-    fill: #4169e1; /* Cor do ícone igual ao texto */
-    margin-right: 8px; /* Espaço entre ícone e texto */
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
 }
 
 /* Contêiner principal que centraliza o conteúdo */
@@ -42,14 +49,16 @@ body {
     padding: 20px; /* Espaçamento interno */
 }
 
-/* Cabeçalho com logo e título */
+/* Cabeçalho com logo e título - padronizado com index.html */
 header {
-    display: flex; /* Alinha logo e título lado a lado */
-    justify-content: space-between; /* Empurra logo para esquerda e título para direita */
-    align-items: center; /* Alinha verticalmente ao centro */
-    background-color: #9c9cdd; /* Fundo roxo claro */
-    padding: 20px; /* Espaçamento interno */
-    border-bottom: 5px solid #000; /* Borda inferior preta grossa */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #d3d3d3; /* Cinza claro como index.html */
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Estiliza a imagem do logo */
@@ -59,22 +68,21 @@ header img {
     object-fit: cover; /* Garante que a imagem preencha o espaço sem distorcer */
 }
 
-/* Estiliza o título no cabeçalho */
+/* Estiliza o título no cabeçalho - padronizado com index.html */
 header h1 {
-    color: #d4af37; /* Cor dourada */
+    color: #001f3f; /* Azul-marinho escuro */
     font-size: 2.5em;
     font-weight: bold;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3); /* Sombra para destaque */
 }
 
-/* Área principal do formulário */
+/* Área principal do formulário - padronizado com index.html */
 main {
-    background-color: white; /* Fundo branco */
-    border-radius: 10px; /* Cantos arredondados */
-    box-shadow: 0 0 15px rgba(0,0,0,0.2); /* Sombra suave */
-    padding: 30px; /* Espaçamento interno */
-    margin-top: 20px; /* Espaço acima do main */
-    border: 5px solid #3b5998; /* Borda azul escura */
+    background-color: #ffffff; /* Fundo branco */
+    border-radius: 15px; /* Cantos arredondados */
+    box-shadow: 0 6px 12px rgba(2, 30, 80, 0.35); /* Sombra azul marinho como index.html */
+    padding: 30px;
+    margin-top: 20px;
+    border: none; /* Remove borda */
 }
 
 /* Formulário ocupa toda a largura do contêiner */
@@ -82,14 +90,21 @@ form {
     width: 100%;
 }
 
-/* Título do formulário (h2) */
+/* Parágrafo dentro do formulário - padronizado com index.html */
+form p {
+    color: #001F5B; /* Azul-marinho */
+    margin-bottom: 20px;
+}
+
+/* Título do formulário (h2) - padronizado com index.html */
 h2 {
-    color: white; /* Texto branco */
-    background-color: #3b5998; /* Fundo azul escuro */
-    padding: 15px; /* Espaçamento interno */
-    border-radius: 5px; /* Cantos levemente arredondados */
-    margin-bottom: 20px; /* Espaço abaixo */
-    text-align: center; /* Centraliza o texto */
+    color: #001F5B; /* Azul-marinho */
+    background-color: transparent; /* Sem fundo */
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
 }
 
 /* Agrupamento de cada campo do formulário */
@@ -97,60 +112,91 @@ h2 {
     margin-bottom: 15px; /* Espaço entre campos */
 }
 
-/* Rótulos dos campos */
+/* Rótulos dos campos - padronizado com index.html */
 label {
-    display: block; /* Ocupa toda a linha */
-    margin-bottom: 5px; /* Espaço abaixo do rótulo */
-    font-weight: bold; /* Negrito */
-    color: #333; /* Cor escura */
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #001F5B; /* Azul-marinho */
 }
 
-/* Estiliza todos os campos de entrada */
+/* Estiliza todos os campos de entrada - padronizado com index.html */
 input[type="text"],
 input[type="email"],
 input[type="password"],
 input[type="file"] {
-    width: 100%; /* Largura total do contêiner */
-    padding: 10px; /* Espaçamento interno */
-    border: 1px solid #ccc; /* Borda cinza clara */
-    border-radius: 5px; /* Cantos arredondados */
-    font-size: 16px; /* Tamanho legível */
-}
-
-/* Botão primário (Cadastrar) */
-.btn-primary {
-    background-color: #3b5998; /* Azul escuro */
-    color: white;
-    padding: 12px 24px;
-    border: none;
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ddd; /* Borda mais espessa */
     border-radius: 5px;
-    cursor: pointer; /* Muda o cursor ao passar */
     font-size: 16px;
-    margin-right: 10px; /* Espaço à direita (para o botão secundário) */
+    transition: border-color 0.3s ease;
 }
 
-/* Botão secundário (Limpar) */
-.btn-secondary {
-    background-color: #666; /* Cinza escuro */
-    color: white;
+/* Efeito ao focar no campo */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="file"]:focus {
+    outline: none;
+    border-color: #587bfa; /* Borda azul-roxo ao focar */
+}
+
+/* Botão primário (Cadastrar) - padronizado com index.html */
+.btn-primary {
+    background-color: #d3d3d3; /* Cinza claro como index.html */
+    color: #001f3f; /* Texto azul-marinho escuro */
     padding: 12px 24px;
     border: none;
-    border-radius: 5px;
+    border-radius: 12px; /* Cantos mais arredondados */
     cursor: pointer;
     font-size: 16px;
+    font-weight: 700;
+    margin-right: 10px;
+    box-shadow: 0 6px 12px rgba(2, 30, 80, 0.35); /* Sombra azul marinho */
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-/* Link para login */
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 18px rgba(2, 30, 80, 0.45);
+}
+
+/* Botão secundário (Limpar) - padronizado com index.html */
+.btn-secondary {
+    background-color: #d3d3d3; /* Cinza claro como index.html */
+    color: #001f3f; /* Texto azul-marinho escuro */
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px; /* Cantos mais arredondados */
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 700;
+    box-shadow: 0 6px 12px rgba(2, 30, 80, 0.35); /* Sombra azul marinho */
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 18px rgba(2, 30, 80, 0.45);
+}
+
+/* Link para login - padronizado com index.html */
 .login-link {
-    text-align: center; /* Centraliza o texto */
-    margin-top: 20px; /* Espaço acima */
-    color: #3b5998; /* Azul escuro */
+    text-align: center;
+    margin-top: 20px;
+    color: #001F5B; /* Azul-marinho */
 }
 
 /* Estiliza o link dentro do parágrafo de login */
 .login-link a {
-    color: #3b5998;
-    text-decoration: underline; /* Sublinhado visível */
+    color: #001F5B;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+
+.login-link a:hover {
+    color: #00153d; /* Tom mais escuro no hover */
 }
 
 /* ===============================================
@@ -252,7 +298,7 @@ input[type="file"] {
     main {
         padding: 15px;
         margin-top: 10px;
-        border: 3px solid #3b5998;
+        border: none; /* Remove borda */
     }
 
     h2 {

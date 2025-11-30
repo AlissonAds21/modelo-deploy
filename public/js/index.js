@@ -20,8 +20,88 @@ async function buscarUrlAmpulheta() {
   }
 }
 
+// Função para verificar expiração de sessão (1 hora de inatividade)
+function verificarSessaoExpirada() {
+  const token = localStorage.getItem('token');
+  const tokenExpiry = localStorage.getItem('tokenExpiry');
+  const lastActivity = localStorage.getItem('lastActivity');
+  
+  if (!token || !tokenExpiry) {
+    return false; // Sem token, não há sessão para expirar
+  }
+  
+  const agora = Date.now();
+  const expiryTime = parseInt(tokenExpiry);
+  
+  // Verificar se token expirou
+  if (agora > expiryTime) {
+    console.log('Sessão expirada por tempo (1 hora).');
+    limparSessao();
+    return true;
+  }
+  
+  // Verificar inatividade (1 hora sem interação)
+  if (lastActivity) {
+    const tempoInatividade = agora - parseInt(lastActivity);
+    const umaHora = 60 * 60 * 1000; // 1 hora em milissegundos
+    
+    if (tempoInatividade > umaHora) {
+      console.log('Sessão expirada por inatividade (1 hora).');
+      limparSessao();
+      return true;
+    }
+  }
+  
+  // Atualizar última atividade
+  localStorage.setItem('lastActivity', agora.toString());
+  return false;
+}
+
+// Função para limpar sessão
+function limparSessao() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('tokenExpiry');
+  localStorage.removeItem('usuario');
+  localStorage.removeItem('lastActivity');
+  
+  // Redirecionar para login se estiver em página protegida
+  if (window.location.pathname.includes('admin.html') || 
+      window.location.pathname.includes('minha-conta.html')) {
+    alert('Sua sessão expirou. Por favor, faça login novamente.');
+    window.location.href = 'login.html';
+  } else {
+    // Recarregar página para atualizar header
+    location.reload();
+  }
+}
+
+// Registrar atividade do usuário
+document.addEventListener('click', () => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    localStorage.setItem('lastActivity', Date.now().toString());
+  }
+});
+
+document.addEventListener('keypress', () => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    localStorage.setItem('lastActivity', Date.now().toString());
+  }
+});
+
+// Verificar sessão periodicamente (a cada 5 minutos)
+setInterval(() => {
+  verificarSessaoExpirada();
+}, 5 * 60 * 1000);
+
 // Função para verificar se o usuário está logado
 function checkLoginStatus() {
+  // Verificar se sessão expirou
+  if (verificarSessaoExpirada()) {
+    return;
+  }
+  
   const usuarioStr = localStorage.getItem('usuario');
   if (!usuarioStr) {
     document.getElementById('authButtons').innerHTML = `
@@ -75,6 +155,9 @@ function checkLoginStatus() {
       ? `<img src="${ampulhetaUrl}" alt="Ampulheta" class="hourglass-icon" onerror="this.onerror=null; this.style.display='none'; console.warn('Erro ao carregar ampulheta do Supabase');">`
       : '';
 
+    // Buscar informações completas do usuário (perfil e status)
+    const nomePerfil = usuario.nomePerfil || 'Cliente';
+    
     // Construir HTML de usuário logado (usa ampulheta encontrada ou não)
     document.getElementById('authButtons').innerHTML = `
       <div class="logged-user-container">
@@ -86,15 +169,20 @@ function checkLoginStatus() {
                onerror="console.error('Erro ao carregar imagem:', this.src); this.onerror=null; this.src='${placeholderUrl}';">
         </div>
         
-        <!-- Botões e status à direita -->
+        <!-- Informações do usuário ao lado da foto -->
         <div class="user-info">
+          <div class="user-status-row">
+            <span class="status-text">${ampulhetaImgTag || `<img src="imagens/ampulheta.gif" alt="Ampulheta" class="hourglass-icon" onerror="this.style.display='none'">`} Status Logado</span>
+          </div>
+          <div class="user-name">${usuario.nome}!</div>
+          <div class="user-perfil">Perfil: ${nomePerfil}</div>
+        </div>
+        
+        <!-- Botões à direita -->
+        <div class="user-actions">
           <div class="buttons-row">
             <button onclick="location.href='minha-conta.html'">Minha Conta</button>
             <button onclick="logout()">Sair</button>
-          </div>
-          <div class="user-status">
-            <span>${ampulhetaImgTag || `<img src="imagens/ampulheta.gif" alt="Ampulheta" class="hourglass-icon" onerror="this.style.display='none'">`} Status Logado</span>
-            <div class="user-name">${usuario.nome}!</div>
           </div>
         </div>
       </div>
@@ -102,19 +190,23 @@ function checkLoginStatus() {
   }).catch(function(err) {
     console.warn('Erro ao buscar ampulheta:', err);
     // Em caso de erro ao obter ampulheta, renderizar interface sem a ampulheta
+    const nomePerfil = usuario.nomePerfil || 'Cliente';
     document.getElementById('authButtons').innerHTML = `
       <div class="logged-user-container">
         <div class="user-avatar">
           <img src="${fotoPerfilUrl}" alt="Foto de Perfil" class="profile-pic" onerror="console.error('Erro ao carregar imagem:', this.src); this.onerror=null; this.src='${placeholderUrl}';">
         </div>
         <div class="user-info">
+          <div class="user-status-row">
+            <span class="status-text"><img src="imagens/ampulheta.gif" alt="Ampulheta" class="hourglass-icon" onerror="this.style.display='none'"> Status Logado</span>
+          </div>
+          <div class="user-name">${usuario.nome}!</div>
+          <div class="user-perfil">Perfil: ${nomePerfil}</div>
+        </div>
+        <div class="user-actions">
           <div class="buttons-row">
             <button onclick="location.href='minha-conta.html'">Minha Conta</button>
             <button onclick="logout()">Sair</button>
-          </div>
-          <div class="user-status">
-            <span><img src="imagens/ampulheta.gif" alt="Ampulheta" class="hourglass-icon" onerror="this.style.display='none'"> Status Logado</span>
-            <div class="user-name">${usuario.nome}!</div>
           </div>
         </div>
       </div>
@@ -131,9 +223,100 @@ function checkLoginStatus() {
   
   // Função para sair (limpar localStorage e recarregar)
   function logout() {
-    localStorage.removeItem('usuario');
+    limparSessao();
     location.reload();
   }
   
   // Executa ao carregar a página
-  document.addEventListener('DOMContentLoaded', checkLoginStatus);
+  document.addEventListener('DOMContentLoaded', () => {
+    checkLoginStatus();
+    carregarImagemProduto1();
+    inicializarFavoritos();
+  });
+
+// Função para carregar a primeira imagem do produto1 do banco de dados
+async function carregarImagemProduto1() {
+  const imgProduto1 = document.getElementById('img-produto1');
+  
+  if (!imgProduto1) {
+    return; // Elemento não encontrado, sair silenciosamente
+  }
+  
+  try {
+    // Buscar imagens do produto1 (código 1)
+    const response = await fetch('/api/produtos/1/imagens');
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const imagens = await response.json();
+    
+    // Se houver imagens, usar a primeira (ordenada por ordem)
+    if (imagens && imagens.length > 0) {
+      // Ordenar por ordem
+      imagens.sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+      
+      // Usar a primeira imagem
+      const primeiraImagem = imagens[0];
+      imgProduto1.src = primeiraImagem.url_imagem;
+      imgProduto1.alt = primeiraImagem.descricao || 'Produto1';
+      
+      console.log('✅ Imagem do produto1 carregada do banco:', primeiraImagem.url_imagem);
+    } else {
+      // Se não houver imagens no banco, manter a imagem padrão
+      console.log('ℹ️ Nenhuma imagem encontrada no banco para produto1, usando imagem padrão');
+    }
+  } catch (err) {
+    // Em caso de erro, manter a imagem padrão
+    console.warn('⚠️ Erro ao carregar imagem do produto1 do banco, usando imagem padrão:', err);
+    // A imagem padrão já está definida no HTML, então não precisa fazer nada
+  }
+}
+
+// ===============================================
+// SISTEMA DE FAVORITOS COM BAÚ
+// ===============================================
+
+// Função para verificar se produto está favoritado
+function isFavoritado(produtoId) {
+  const favoritos = JSON.parse(localStorage.getItem('produtosFavoritos') || '[]');
+  return favoritos.includes(produtoId);
+}
+
+// Função para adicionar/remover favorito
+function toggleFavorito(event, produtoId) {
+  // Prevenir que o clique no botão abra o link do produto
+  event.stopPropagation();
+  
+  // Toggle favorito
+  let favoritos = JSON.parse(localStorage.getItem('produtosFavoritos') || '[]');
+  const index = favoritos.indexOf(produtoId);
+  
+  if (index > -1) {
+    // Remover favorito
+    favoritos.splice(index, 1);
+    event.currentTarget.classList.remove('favoritado');
+  } else {
+    // Adicionar favorito
+    favoritos.push(produtoId);
+    event.currentTarget.classList.add('favoritado');
+  }
+  
+  localStorage.setItem('produtosFavoritos', JSON.stringify(favoritos));
+}
+
+// Função para inicializar favoritos ao carregar a página
+function inicializarFavoritos() {
+  // Marcar produtos já favoritados
+  const favoritos = JSON.parse(localStorage.getItem('produtosFavoritos') || '[]');
+  favoritos.forEach(produtoId => {
+    const produtoCard = document.querySelector(`[data-produto-id="${produtoId}"]`);
+    if (produtoCard) {
+      const favoritoBtn = produtoCard.querySelector('.favorito-btn');
+      if (favoritoBtn) {
+        favoritoBtn.classList.add('favoritado');
+      }
+    }
+  });
+}

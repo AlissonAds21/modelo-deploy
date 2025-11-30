@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Projeto</title>
+    <title>LOS PATRONES DA REFORMA</title>
     <link rel="stylesheet" href="index.css">
 </head>
 <body>
     <header>
         <div class="imagem-logo">
-            <img src="/imagensSite/logo.png" alt="Logo do meu Projeto" class="logo">
+            <img src="/imagensSite/logo.png" alt="Logo LOS PATRONES DA REFORMA" class="logo">
         </div>
         
         <div class="social-icons">
@@ -47,36 +47,261 @@
 
         <section>
             <h3>Materiais de Escritório:</h3>
-            <div class="galeria">
-                <!-- Repetir para todas as imagens -->
-                <img src="imagens_produtos/produto01/produto1.png" onclick="location.href='produto1.html'" alt="Produto1">
-                <img src="imagens_produtos/produto02/produto2.png" onclick="location.href='produto2.html'" alt="Produto2">
-                <img src="imagens_produtos/produto03/produto3.png" onclick="location.href='produto3.html'" alt="Produto3">
-                <img src="imagens_produtos/produto04/produto4.png" onclick="location.href='produto4.html'" alt="Produto4">
-                <img src="imagens_produtos/produto05/produto5.png" onclick="location.href='produto5.html'" alt="Produto5">
-                <img src="imagens_produtos/produto06/produto6.png" onclick="location.href='produto6.html'" alt="Produto6">               
+            <div class="galeria-produtos">
+                <!-- Card Produto 1 -->
+                <div class="produto-card" data-produto-id="1">
+                    <div class="produto-imagem-container">
+                        <img id="img-produto1" src="imagens_produtos/produto01/produto1.png" alt="Produto1" onerror="this.onerror=null; this.src='imagens_produtos/produto01/produto1.png';">
+                        <button class="favorito-btn" onclick="toggleFavorito(event, 1)" title="Adicionar aos favoritos">
+                            <svg class="favorito-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path class="bau-body" d="M4 6H20V20H4V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M4 10H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="bau-lid" d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M12 14V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="produto-info">
+                        <h4 class="produto-titulo" onclick="location.href='produto1.html'">Impressora Brother Multifuncional</h4>
+                        <p class="produto-preco">R$ 899,00</p>
+                        <p class="produto-data">Hoje, 14:30 - São Paulo - SP</p>
+                    </div>
+                </div>
+                
+                <!-- Card Produto 2 -->
+                <div class="produto-card" data-produto-id="2">
+                    <div class="produto-imagem-container">
+                        <img src="imagens_produtos/produto02/produto2.png" alt="Produto2" onclick="location.href='produto2.html'">
+                        <button class="favorito-btn" onclick="toggleFavorito(event, 2)" title="Adicionar aos favoritos">
+                            <svg class="favorito-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path class="bau-body" d="M4 6H20V20H4V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M4 10H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="bau-lid" d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M12 14V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="produto-info">
+                        <h4 class="produto-titulo" onclick="location.href='produto2.html'">Toner Cartridge</h4>
+                        <p class="produto-preco">R$ 150,00</p>
+                        <p class="produto-data">Hoje, 12:15 - São Paulo - SP</p>
+                    </div>
+                </div>
+                
+                <!-- Card Produto 3 -->
+                <div class="produto-card" data-produto-id="3">
+                    <div class="produto-imagem-container">
+                        <img src="imagens_produtos/produto03/produto3.png" alt="Produto3" onclick="location.href='produto3.html'">
+                        <button class="favorito-btn" onclick="toggleFavorito(event, 3)" title="Adicionar aos favoritos">
+                            <svg class="favorito-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path class="bau-body" d="M4 6H20V20H4V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M4 10H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="bau-lid" d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M12 14V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="produto-info">
+                        <h4 class="produto-titulo" onclick="location.href='produto3.html'">Scanner Portátil</h4>
+                        <p class="produto-preco">R$ 299,00</p>
+                        <p class="produto-data">Ontem, 18:45 - São Paulo - SP</p>
+                    </div>
+                </div>
+                
+                <!-- Card Produto 4 -->
+                <div class="produto-card" data-produto-id="4">
+                    <div class="produto-imagem-container">
+                        <img src="imagens_produtos/produto04/produto4.png" alt="Produto4" onclick="location.href='produto4.html'">
+                        <button class="favorito-btn" onclick="toggleFavorito(event, 4)" title="Adicionar aos favoritos">
+                            <svg class="favorito-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path class="bau-body" d="M4 6H20V20H4V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M4 10H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="bau-lid" d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M12 14V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="produto-info">
+                        <h4 class="produto-titulo" onclick="location.href='produto4.html'">Kit Tintas Profeel</h4>
+                        <p class="produto-preco">R$ 89,90</p>
+                        <p class="produto-data">25/11/2025, 10:20 - São Paulo - SP</p>
+                    </div>
+                </div>
+                
+                <!-- Card Produto 5 -->
+                <div class="produto-card" data-produto-id="5">
+                    <div class="produto-imagem-container">
+                        <img src="imagens_produtos/produto05/produto5.png" alt="Produto5" onclick="location.href='produto5.html'">
+                        <button class="favorito-btn" onclick="toggleFavorito(event, 5)" title="Adicionar aos favoritos">
+                            <svg class="favorito-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path class="bau-body" d="M4 6H20V20H4V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M4 10H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="bau-lid" d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M12 14V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="produto-info">
+                        <h4 class="produto-titulo" onclick="location.href='produto5.html'">Impressora 3D</h4>
+                        <p class="produto-preco">R$ 1.299,00</p>
+                        <p class="produto-data">24/11/2025, 15:30 - São Paulo - SP</p>
+                    </div>
+                </div>
+                
+                <!-- Card Produto 6 -->
+                <div class="produto-card" data-produto-id="6">
+                    <div class="produto-imagem-container">
+                        <img src="imagens_produtos/produto06/produto6.png" alt="Produto6" onclick="location.href='produto6.html'">
+                        <button class="favorito-btn" onclick="toggleFavorito(event, 6)" title="Adicionar aos favoritos">
+                            <svg class="favorito-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path class="bau-body" d="M4 6H20V20H4V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M4 10H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="bau-lid" d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M12 14V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="produto-info">
+                        <h4 class="produto-titulo" onclick="location.href='produto6.html'">Filamento 3D - 6 Unidades</h4>
+                        <p class="produto-preco">R$ 199,90</p>
+                        <p class="produto-data">23/11/2025, 09:15 - São Paulo - SP</p>
+                    </div>
+                </div>
             </div>
         </section>
 
         <section>
             <h3>Informática</h3>
-            <div class="galeria">
-                <img src="imagens_produtos/produto07/produto7.png" onclick="location.href='produto7.html'" alt="Produto">               
-                <img src="imagens_produtos/produto08/produto8.png" onclick="location.href='produto8.html'" alt="Produto">
-                <img src="imagens_produtos/produto09/produto9.png" onclick="location.href='produto9.html'" alt="Produto">
-                <img src="imagens_produtos/produto10/produto10.png" onclick="location.href='produto10.html'" alt="Produto">
-                <img src="imagens_produtos/produto11/produto11.png" onclick="location.href='produto11.html'" alt="Produto">
-                <img src="imagens_produtos/produto12/produto12.png" onclick="location.href='produto12.html'" alt="Produto">
-
+            <div class="galeria-produtos">
+                <!-- Card Produto 7 -->
+                <div class="produto-card" data-produto-id="7">
+                    <div class="produto-imagem-container">
+                        <img src="imagens_produtos/produto07/produto7.png" alt="Produto" onclick="location.href='produto7.html'">
+                        <button class="favorito-btn" onclick="toggleFavorito(event, 7)" title="Adicionar aos favoritos">
+                            <svg class="favorito-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path class="bau-body" d="M4 6H20V20H4V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M4 10H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="bau-lid" d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M12 14V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="produto-info">
+                        <h4 class="produto-titulo" onclick="location.href='produto7.html'">Monitor Gaming</h4>
+                        <p class="produto-preco">R$ 799,00</p>
+                        <p class="produto-data">22/11/2025, 16:45 - São Paulo - SP</p>
+                    </div>
+                </div>
+                
+                <!-- Card Produto 8 -->
+                <div class="produto-card" data-produto-id="8">
+                    <div class="produto-imagem-container">
+                        <img src="imagens_produtos/produto08/produto8.png" alt="Produto" onclick="location.href='produto8.html'">
+                        <button class="favorito-btn" onclick="toggleFavorito(event, 8)" title="Adicionar aos favoritos">
+                            <svg class="favorito-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path class="bau-body" d="M4 6H20V20H4V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M4 10H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="bau-lid" d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M12 14V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="produto-info">
+                        <h4 class="produto-titulo" onclick="location.href='produto8.html'">Notebook Acer Nitro</h4>
+                        <p class="produto-preco">R$ 3.499,00</p>
+                        <p class="produto-data">21/11/2025, 11:30 - São Paulo - SP</p>
+                    </div>
+                </div>
+                
+                <!-- Card Produto 9 -->
+                <div class="produto-card" data-produto-id="9">
+                    <div class="produto-imagem-container">
+                        <img src="imagens_produtos/produto09/produto9.png" alt="Produto" onclick="location.href='produto9.html'">
+                        <button class="favorito-btn" onclick="toggleFavorito(event, 9)" title="Adicionar aos favoritos">
+                            <svg class="favorito-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path class="bau-body" d="M4 6H20V20H4V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M4 10H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="bau-lid" d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M12 14V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="produto-info">
+                        <h4 class="produto-titulo" onclick="location.href='produto9.html'">Tablet/Display</h4>
+                        <p class="produto-preco">R$ 599,00</p>
+                        <p class="produto-data">20/11/2025, 14:20 - São Paulo - SP</p>
+                    </div>
+                </div>
+                
+                <!-- Card Produto 10 -->
+                <div class="produto-card" data-produto-id="10">
+                    <div class="produto-imagem-container">
+                        <img src="imagens_produtos/produto10/produto10.png" alt="Produto" onclick="location.href='produto10.html'">
+                        <button class="favorito-btn" onclick="toggleFavorito(event, 10)" title="Adicionar aos favoritos">
+                            <svg class="favorito-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path class="bau-body" d="M4 6H20V20H4V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M4 10H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="bau-lid" d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M12 14V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="produto-info">
+                        <h4 class="produto-titulo" onclick="location.href='produto10.html'">Caneta 3D Stylus</h4>
+                        <p class="produto-preco">R$ 149,90</p>
+                        <p class="produto-data">19/11/2025, 08:15 - São Paulo - SP</p>
+                    </div>
+                </div>
+                
+                <!-- Card Produto 11 -->
+                <div class="produto-card" data-produto-id="11">
+                    <div class="produto-imagem-container">
+                        <img src="imagens_produtos/produto11/produto11.png" alt="Produto" onclick="location.href='produto11.html'">
+                        <button class="favorito-btn" onclick="toggleFavorito(event, 11)" title="Adicionar aos favoritos">
+                            <svg class="favorito-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path class="bau-body" d="M4 6H20V20H4V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M4 10H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="bau-lid" d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M12 14V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="produto-info">
+                        <h4 class="produto-titulo" onclick="location.href='produto11.html'">Teclado Mecânico</h4>
+                        <p class="produto-preco">R$ 249,00</p>
+                        <p class="produto-data">18/11/2025, 13:40 - São Paulo - SP</p>
+                    </div>
+                </div>
+                
+                <!-- Card Produto 12 -->
+                <div class="produto-card" data-produto-id="12">
+                    <div class="produto-imagem-container">
+                        <img src="imagens_produtos/produto12/produto12.png" alt="Produto" onclick="location.href='produto12.html'">
+                        <button class="favorito-btn" onclick="toggleFavorito(event, 12)" title="Adicionar aos favoritos">
+                            <svg class="favorito-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path class="bau-body" d="M4 6H20V20H4V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M4 10H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="bau-lid" d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <path d="M12 14V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="produto-info">
+                        <h4 class="produto-titulo" onclick="location.href='produto12.html'">Mouse Logitech Gaming</h4>
+                        <p class="produto-preco">R$ 179,90</p>
+                        <p class="produto-data">17/11/2025, 10:25 - São Paulo - SP</p>
+                    </div>
+                </div>
             </div>
         </section>
       
     </main>
 
     <footer>
-        <p>Comercio e-commerce produtos "Seu Produto" ltda.</p>
+        <p>Comercio e-commerce produtos "LOS PATRONES DA REFORMA" ltda.</p>
         <p>Endereço: Av. Brasil 1005, CEP 07352-090 centro, São Paulo, SP Brasil</p>
     </footer>
+
 
     <script src="js/index.js"></script>
 </body>

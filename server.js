@@ -4,10 +4,15 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const multer = require('multer');
+const jwt = require('jsonwebtoken');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// === JWT CONFIG ===
+const JWT_SECRET = process.env.JWT_SECRET || 'sua-chave-secreta-super-segura-alterar-em-producao';
+const JWT_EXPIRES_IN = '1h'; // Token expira em 1 hora
 
 // === SUPABASE CONFIG (opcional localmente, obrigatório no Render) ===
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -32,19 +37,89 @@ pool.query('SELECT NOW()', (err) => {
   else console.log('✅ Conectado ao Neon PostgreSQL!');
 });
 
-// Criar tabela (se não existir)
+// Criar tabelas (se não existirem)
 // IMPORTANTE: Usar aspas duplas para manter o case da coluna fotoPerfil
+
+// Criar tabela de perfis primeiro
+const createPerfilTable = `
+  CREATE TABLE IF NOT EXISTS perfil_usuarios (
+    id_perfil SERIAL PRIMARY KEY,
+    perfil VARCHAR(50) NOT NULL
+  );
+`;
+pool.query(createPerfilTable).catch(err => console.error('Erro ao criar tabela perfil_usuarios:', err));
+
+// Inserir perfis padrão
+pool.query(`
+  INSERT INTO perfil_usuarios (id_perfil, perfil) VALUES
+  (1, 'Master'),
+  (2, 'Cliente'),
+  (3, 'Profissional')
+  ON CONFLICT (id_perfil) DO NOTHING;
+`).catch(err => console.error('Erro ao inserir perfis:', err));
+
+// Criar tabela de histórico
+const createHistoricoTable = `
+  CREATE TABLE IF NOT EXISTS historico_movimentacoes (
+    id_mov SERIAL PRIMARY KEY,
+    id_usuario INTEGER NOT NULL REFERENCES cadastro_usuario(id_usuario) ON DELETE CASCADE,
+    acao TEXT NOT NULL,
+    data_mov TIMESTAMP DEFAULT NOW()
+  );
+`;
+pool.query(createHistoricoTable).catch(err => console.error('Erro ao criar tabela historico_movimentacoes:', err));
+
+// Criar tabela de serviços
+const createServicosTable = `
+  CREATE TABLE IF NOT EXISTS servicos (
+    id_servico SERIAL PRIMARY KEY,
+    tipo_servico VARCHAR(100),
+    titulo_servico VARCHAR(100),
+    servico VARCHAR(200),
+    descricao_servico TEXT,
+    valor_servico NUMERIC(10,2)
+  );
+`;
+pool.query(createServicosTable).catch(err => console.error('Erro ao criar tabela servicos:', err));
+
+// Criar tabela cadastro_usuario com novas colunas
 const createTable = `
   CREATE TABLE IF NOT EXISTS cadastro_usuario (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
+    perfil INTEGER DEFAULT 2 REFERENCES perfil_usuarios(id_perfil),
     cpf VARCHAR(14) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     senha VARCHAR(255) NOT NULL,
-    "fotoPerfil" VARCHAR(500)
+    "fotoPerfil" VARCHAR(500),
+    data_cadastro TIMESTAMP DEFAULT NOW(),
+    status VARCHAR(20) DEFAULT 'Ativo'
   );
 `;
 pool.query(createTable).catch(err => console.error('Erro ao criar tabela:', err));
+
+// Adicionar colunas se não existirem (para tabelas já criadas)
+pool.query(`
+  ALTER TABLE cadastro_usuario
+  ADD COLUMN IF NOT EXISTS perfil INTEGER DEFAULT 2 REFERENCES perfil_usuarios(id_perfil);
+`).catch(err => console.error('Erro ao adicionar coluna perfil:', err));
+
+pool.query(`
+  ALTER TABLE cadastro_usuario
+  ADD COLUMN IF NOT EXISTS data_cadastro TIMESTAMP DEFAULT NOW();
+`).catch(err => console.error('Erro ao adicionar coluna data_cadastro:', err));
+
+pool.query(`
+  ALTER TABLE cadastro_usuario
+  ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'Ativo';
+`).catch(err => console.error('Erro ao adicionar coluna status:', err));
+
+// Atualizar registros existentes
+pool.query(`
+  UPDATE cadastro_usuario
+  SET perfil = 2, status = 'Ativo', data_cadastro = COALESCE(data_cadastro, NOW())
+  WHERE perfil IS NULL OR status IS NULL OR data_cadastro IS NULL;
+`).catch(err => console.error('Erro ao atualizar registros:', err));
 
 // === MIDDLEWARES ===
 app.use(cors());
@@ -141,28 +216,35 @@ app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
       return res.status(409).json({ error: 'CPF ou e-mail já cadastrado.' });
     }
 
-    // Criar usuário
+    // Criar usuário (perfil padrão = 2 = Cliente, status = 'Ativo')
     const hashSenha = await bcrypt.hash(senha, 10);
+    
+    let userId;
     
     // Tentar inserir com "fotoPerfil" (case preservado) primeiro
     // Se falhar, tentar com fotoperfil (minúsculo)
     try {
-      await pool.query(
-        'INSERT INTO cadastro_usuario (nome, cpf, email, senha, "fotoPerfil") VALUES ($1, $2, $3, $4, $5)',
-        [nome, cpf, email, hashSenha, fotoPerfilUrl]
+      const result = await pool.query(
+        'INSERT INTO cadastro_usuario (nome, perfil, cpf, email, senha, "fotoPerfil", status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+        [nome, 2, cpf, email, hashSenha, fotoPerfilUrl, 'Ativo']
       );
+      userId = result.rows[0].id;
     } catch (insertError) {
       // Se der erro, a coluna provavelmente está em minúsculo
       if (insertError.code === '42703' || insertError.message.includes('does not exist')) {
         console.log('⚠️ Tentando com coluna em minúsculo...');
-        await pool.query(
-          'INSERT INTO cadastro_usuario (nome, cpf, email, senha, fotoperfil) VALUES ($1, $2, $3, $4, $5)',
-          [nome, cpf, email, hashSenha, fotoPerfilUrl]
+        const result = await pool.query(
+          'INSERT INTO cadastro_usuario (nome, perfil, cpf, email, senha, fotoperfil, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+          [nome, 2, cpf, email, hashSenha, fotoPerfilUrl, 'Ativo']
         );
+        userId = result.rows[0].id;
       } else {
         throw insertError; // Re-lançar se for outro tipo de erro
       }
     }
+    
+    // Registrar histórico: conta criada
+    await registrarHistorico(userId, 'Conta criada com sucesso');
     
     console.log('✅ Usuário cadastrado com foto:', fotoPerfilUrl);
 
@@ -173,57 +255,386 @@ app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
   }
 });
 
+// === FUNÇÃO: Registrar histórico de movimentações ===
+async function registrarHistorico(idUsuario, acao) {
+  try {
+    await pool.query(
+      'INSERT INTO historico_movimentacoes (id_usuario, acao) VALUES ($1, $2)',
+      [idUsuario, acao]
+    );
+  } catch (err) {
+    console.error('Erro ao registrar histórico:', err);
+    // Não bloquear operação se histórico falhar
+  }
+}
+
+// === MIDDLEWARE: Verificar JWT ===
+function verificarToken(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1] || req.headers['x-access-token'];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Token não fornecido. Faça login novamente.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.userId;
+    req.userEmail = decoded.email;
+    req.userPerfil = decoded.perfil; // Adicionar perfil ao request
+    next();
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Sessão expirada. Faça login novamente.' });
+    }
+    return res.status(401).json({ error: 'Token inválido. Faça login novamente.' });
+  }
+}
+
+// === MIDDLEWARE: Verificar se é Master ===
+function verificarMaster(req, res, next) {
+  if (req.userPerfil !== 1) {
+    return res.status(403).json({ error: 'Acesso negado. Apenas usuários Master podem realizar esta ação.' });
+  }
+  next();
+}
+
 // === ROTA: LOGIN ===
 app.post('/api/login', async (req, res) => {
   const { login, senha } = req.body;
   if (!login || !senha) {
-    return res.status(400).json({ error: 'CPF/E-mail e senha são obrigatórios.' });
+    return res.status(400).json({ error: 'E-mail, CPF ou senha incorretos.' });
   }
 
   try {
-    // Tentar primeiro com aspas (se a coluna foi criada com case preservado)
-    // Se falhar, tentar sem aspas (minúsculo)
+    // Normalizar o login (trim e lowercase para email)
+    const loginNormalizado = login.trim();
+    
+    // Buscar usuário com perfil e status - aceita email OU cpf
     let result;
     try {
       result = await pool.query(
-        'SELECT id, nome, cpf, email, senha, "fotoPerfil" as fotoperfil FROM cadastro_usuario WHERE cpf = $1 OR email = $1',
-        [login]
+        `SELECT u.id, u.nome, u.cpf, u.email, u.senha, u.perfil, u.status, 
+                u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
+         FROM cadastro_usuario u
+         LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+         WHERE (LOWER(u.email) = LOWER($1) OR u.cpf = $1)`,
+        [loginNormalizado]
       );
     } catch (colError) {
-      // Se der erro, a coluna provavelmente está em minúsculo
+      // Se der erro, tentar sem aspas (minúsculo)
       result = await pool.query(
-        'SELECT id, nome, cpf, email, senha, fotoperfil FROM cadastro_usuario WHERE cpf = $1 OR email = $1',
-        [login]
+        `SELECT u.id, u.nome, u.cpf, u.email, u.senha, u.perfil, u.status, 
+                u.fotoperfil, p.perfil as nome_perfil
+         FROM cadastro_usuario u
+         LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+         WHERE (LOWER(u.email) = LOWER($1) OR u.cpf = $1)`,
+        [loginNormalizado]
       );
     }
     
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'CPF/E-mail ou senha inválidos.' });
+      console.log('❌ Usuário não encontrado para login:', loginNormalizado);
+      return res.status(401).json({ error: 'E-mail, CPF ou senha incorretos.' });
     }
 
     const user = result.rows[0];
+    
+    // Log para debug
+    console.log('🔍 Usuário encontrado:', {
+      id: user.id,
+      email: user.email,
+      cpf: user.cpf,
+      perfil: user.perfil,
+      status: user.status,
+      senhaHash: user.senha ? user.senha.substring(0, 20) + '...' : 'NULL'
+    });
+    
+    // Verificar status - usuários inativos não podem logar
+    if (!user.status || user.status !== 'Ativo') {
+      console.log('❌ Usuário inativo:', user.id);
+      return res.status(403).json({ error: 'Conta inativa. Entre em contato com o suporte.' });
+    }
+    
+    // Verificar se senha existe no banco
+    if (!user.senha) {
+      console.log('❌ Senha não encontrada no banco para usuário:', user.id);
+      return res.status(401).json({ error: 'E-mail, CPF ou senha incorretos.' });
+    }
+    
+    // Comparar senha usando bcrypt
     const valid = await bcrypt.compare(senha, user.senha);
-    if (!valid) return res.status(401).json({ error: 'CPF/E-mail ou senha inválidos.' });
+    
+    if (!valid) {
+      console.log('❌ Senha inválida para usuário:', user.id);
+      // Log adicional para debug (não em produção)
+      const testHash = await bcrypt.hash(senha, 10);
+      console.log('🔍 Hash de teste gerado:', testHash.substring(0, 20) + '...');
+      return res.status(401).json({ error: 'E-mail, CPF ou senha incorretos.' });
+    }
+    
+    console.log('✅ Senha válida para usuário:', user.id);
 
     // Obter a URL da foto (pode estar como fotoperfil)
     let fotoPerfil = user.fotoperfil || null;
+    let nomePerfil = user.nome_perfil || 'Cliente';
     
     // Log para debug
     console.log('📸 Foto de perfil do banco:', fotoPerfil);
+    console.log('👤 Perfil do usuário:', nomePerfil);
+    
+    // Gerar JWT token (incluir perfil)
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email,
+        nome: user.nome,
+        perfil: user.perfil || 2
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+    
+    // Registrar histórico: login realizado
+    await registrarHistorico(user.id, 'Login realizado com sucesso');
     
     res.json({
       message: 'Login realizado com sucesso!',
+      token: token,
       usuario: {
         id: user.id,
         nome: user.nome,
         email: user.email,
         cpf: user.cpf,
-        fotoPerfil: fotoPerfil // URL completa do Supabase
+        fotoPerfil: fotoPerfil,
+        perfil: user.perfil || 2,
+        nomePerfil: nomePerfil,
+        status: user.status
       }
     });
   } catch (err) {
-    console.error('Erro no login:', err);
-    res.status(500).json({ error: 'Erro interno no login.' });
+    console.error('❌ Erro no login:', err);
+    res.status(500).json({ error: 'E-mail, CPF ou senha incorretos.' });
+  }
+});
+
+// === ROTA: Verificar Token (para validação no cliente) ===
+app.get('/api/verificar-sessao', verificarToken, async (req, res) => {
+  try {
+    // Buscar dados completos do usuário incluindo perfil
+    const result = await pool.query(
+      `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, 
+              u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
+       FROM cadastro_usuario u
+       LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+       WHERE u.id = $1`,
+      [req.userId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    const user = result.rows[0];
+    res.json({ 
+      valid: true, 
+      userId: user.id, 
+      email: user.email,
+      nome: user.nome,
+      perfil: user.perfil,
+      nomePerfil: user.nome_perfil || 'Cliente',
+      status: user.status,
+      fotoPerfil: user.fotoperfil
+    });
+  } catch (err) {
+    console.error('Erro ao verificar sessão:', err);
+    res.status(500).json({ error: 'Erro ao verificar sessão.' });
+  }
+});
+
+// === ROTAS DE GERENCIAMENTO DE USUÁRIOS ===
+
+// Listar todos os usuários (apenas Master)
+app.get('/api/usuarios', verificarToken, verificarMaster, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
+              u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
+       FROM cadastro_usuario u
+       LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+       ORDER BY u.data_cadastro DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro ao listar usuários:', err);
+    res.status(500).json({ error: 'Erro ao listar usuários.' });
+  }
+});
+
+// Buscar usuário por ID
+app.get('/api/usuarios/:id', verificarToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Master pode ver qualquer usuário, outros só podem ver a si mesmos
+    if (req.userPerfil !== 1 && parseInt(id) !== req.userId) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+    
+    const result = await pool.query(
+      `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
+              u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
+       FROM cadastro_usuario u
+       LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+       WHERE u.id = $1`,
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Erro ao buscar usuário:', err);
+    res.status(500).json({ error: 'Erro ao buscar usuário.' });
+  }
+});
+
+// Inativar usuário (não deletar) - apenas Master
+app.put('/api/usuarios/:id/inativar', verificarToken, verificarMaster, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const masterId = req.userId;
+    
+    // Verificar se usuário existe
+    const userCheck = await pool.query(
+      'SELECT id, nome, status FROM cadastro_usuario WHERE id = $1',
+      [id]
+    );
+    
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    const usuario = userCheck.rows[0];
+    
+    // Não permitir inativar a si mesmo
+    if (parseInt(id) === masterId) {
+      return res.status(400).json({ error: 'Você não pode inativar sua própria conta.' });
+    }
+    
+    // Atualizar status para Inativo
+    await pool.query(
+      'UPDATE cadastro_usuario SET status = $1 WHERE id = $2',
+      ['Inativo', id]
+    );
+    
+    // Registrar histórico
+    await registrarHistorico(parseInt(id), `Conta inativada pelo Master (ID: ${masterId})`);
+    await registrarHistorico(masterId, `Inativou conta do usuário ${usuario.nome} (ID: ${id})`);
+    
+    res.json({ message: 'Usuário inativado com sucesso.' });
+  } catch (err) {
+    console.error('Erro ao inativar usuário:', err);
+    res.status(500).json({ error: 'Erro ao inativar usuário.' });
+  }
+});
+
+// Reativar usuário - apenas Master
+app.put('/api/usuarios/:id/reativar', verificarToken, verificarMaster, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const masterId = req.userId;
+    
+    // Verificar se usuário existe
+    const userCheck = await pool.query(
+      'SELECT id, nome FROM cadastro_usuario WHERE id = $1',
+      [id]
+    );
+    
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    const usuario = userCheck.rows[0];
+    
+    // Atualizar status para Ativo
+    await pool.query(
+      'UPDATE cadastro_usuario SET status = $1 WHERE id = $2',
+      ['Ativo', id]
+    );
+    
+    // Registrar histórico
+    await registrarHistorico(parseInt(id), `Conta reativada pelo Master (ID: ${masterId})`);
+    await registrarHistorico(masterId, `Reativou conta do usuário ${usuario.nome} (ID: ${id})`);
+    
+    res.json({ message: 'Usuário reativado com sucesso.' });
+  } catch (err) {
+    console.error('Erro ao reativar usuário:', err);
+    res.status(500).json({ error: 'Erro ao reativar usuário.' });
+  }
+});
+
+// Atualizar perfil de usuário - apenas Master
+app.put('/api/usuarios/:id/perfil', verificarToken, verificarMaster, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { perfil } = req.body;
+    const masterId = req.userId;
+    
+    if (!perfil || ![1, 2, 3].includes(parseInt(perfil))) {
+      return res.status(400).json({ error: 'Perfil inválido. Use 1 (Master), 2 (Cliente) ou 3 (Profissional).' });
+    }
+    
+    // Verificar se usuário existe
+    const userCheck = await pool.query(
+      'SELECT id, nome, perfil FROM cadastro_usuario WHERE id = $1',
+      [id]
+    );
+    
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    const usuario = userCheck.rows[0];
+    const perfilAntigo = usuario.perfil;
+    
+    // Atualizar perfil
+    await pool.query(
+      'UPDATE cadastro_usuario SET perfil = $1 WHERE id = $2',
+      [perfil, id]
+    );
+    
+    // Registrar histórico
+    await registrarHistorico(parseInt(id), `Perfil alterado de ${perfilAntigo} para ${perfil} pelo Master (ID: ${masterId})`);
+    await registrarHistorico(masterId, `Alterou perfil do usuário ${usuario.nome} (ID: ${id}) de ${perfilAntigo} para ${perfil}`);
+    
+    res.json({ message: 'Perfil atualizado com sucesso.' });
+  } catch (err) {
+    console.error('Erro ao atualizar perfil:', err);
+    res.status(500).json({ error: 'Erro ao atualizar perfil.' });
+  }
+});
+
+// Obter histórico de movimentações de um usuário
+app.get('/api/usuarios/:id/historico', verificarToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Master pode ver histórico de qualquer usuário, outros só podem ver o próprio
+    if (req.userPerfil !== 1 && parseInt(id) !== req.userId) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+    
+    const result = await pool.query(
+      'SELECT * FROM historico_movimentacoes WHERE id_usuario = $1 ORDER BY data_mov DESC',
+      [id]
+    );
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro ao buscar histórico:', err);
+    res.status(500).json({ error: 'Erro ao buscar histórico.' });
   }
 });
 
@@ -337,17 +748,143 @@ app.post('/api/produtos', async (req, res) => {
 app.put('/api/produtos/:codigo', async (req, res) => {
   try {
     const { codigo } = req.params;
-    const { produto, marca, valor_compra, valor_venda } = req.body;
+    const { 
+      produto, 
+      marca, 
+      valor_compra, 
+      valor_venda,
+      modelo,
+      capacidade,
+      tensao,
+      tecnologia,
+      cor,
+      garantia,
+      condicao,
+      descricao_completa
+    } = req.body;
     
-    const result = await pool.query(`
-      UPDATE produto
-      SET produto = COALESCE($1, produto),
-          marca = COALESCE($2, marca),
-          valor_compra = COALESCE($3, valor_compra),
-          valor_venda = COALESCE($4, valor_venda)
-      WHERE codigo_produto = $5
-      RETURNING *
-    `, [produto, marca, valor_compra, valor_venda, codigo]);
+    // Construir query dinamicamente para lidar com colunas que podem não existir
+    let updateFields = [];
+    let values = [];
+    let paramIndex = 1;
+    
+    if (produto !== undefined) {
+      updateFields.push(`produto = COALESCE($${paramIndex}, produto)`);
+      values.push(produto);
+      paramIndex++;
+    }
+    if (marca !== undefined) {
+      updateFields.push(`marca = COALESCE($${paramIndex}, marca)`);
+      values.push(marca);
+      paramIndex++;
+    }
+    if (valor_compra !== undefined) {
+      updateFields.push(`valor_compra = COALESCE($${paramIndex}, valor_compra)`);
+      values.push(valor_compra);
+      paramIndex++;
+    }
+    if (valor_venda !== undefined) {
+      updateFields.push(`valor_venda = COALESCE($${paramIndex}, valor_venda)`);
+      values.push(valor_venda);
+      paramIndex++;
+    }
+    if (modelo !== undefined) {
+      updateFields.push(`modelo = COALESCE($${paramIndex}, modelo)`);
+      values.push(modelo);
+      paramIndex++;
+    }
+    if (capacidade !== undefined) {
+      updateFields.push(`capacidade = COALESCE($${paramIndex}, capacidade)`);
+      values.push(capacidade);
+      paramIndex++;
+    }
+    if (tensao !== undefined) {
+      updateFields.push(`tensao = COALESCE($${paramIndex}, tensao)`);
+      values.push(tensao);
+      paramIndex++;
+    }
+    if (tecnologia !== undefined) {
+      updateFields.push(`tecnologia = COALESCE($${paramIndex}, tecnologia)`);
+      values.push(tecnologia);
+      paramIndex++;
+    }
+    if (cor !== undefined) {
+      updateFields.push(`cor = COALESCE($${paramIndex}, cor)`);
+      values.push(cor);
+      paramIndex++;
+    }
+    if (garantia !== undefined) {
+      updateFields.push(`garantia = COALESCE($${paramIndex}, garantia)`);
+      values.push(garantia);
+      paramIndex++;
+    }
+    if (condicao !== undefined) {
+      updateFields.push(`condicao = COALESCE($${paramIndex}, condicao)`);
+      values.push(condicao);
+      paramIndex++;
+    }
+    if (descricao_completa !== undefined) {
+      updateFields.push(`descricao_completa = COALESCE($${paramIndex}, descricao_completa)`);
+      values.push(descricao_completa);
+      paramIndex++;
+    }
+    
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo para atualizar.' });
+    }
+    
+    values.push(codigo);
+    
+    // Tentar atualizar com todas as colunas, se alguma não existir, tentar sem ela
+    let result;
+    try {
+      result = await pool.query(`
+        UPDATE produto
+        SET ${updateFields.join(', ')}
+        WHERE codigo_produto = $${paramIndex}
+        RETURNING *
+      `, values);
+    } catch (err) {
+      // Se der erro por coluna não existir, tentar apenas com campos básicos
+      if (err.message.includes('column') || err.message.includes('does not exist')) {
+        console.warn('Algumas colunas de detalhes não existem, atualizando apenas campos básicos');
+        const basicFields = [];
+        const basicValues = [];
+        let basicIndex = 1;
+        
+        if (produto !== undefined) {
+          basicFields.push(`produto = COALESCE($${basicIndex}, produto)`);
+          basicValues.push(produto);
+          basicIndex++;
+        }
+        if (marca !== undefined) {
+          basicFields.push(`marca = COALESCE($${basicIndex}, marca)`);
+          basicValues.push(marca);
+          basicIndex++;
+        }
+        if (valor_compra !== undefined) {
+          basicFields.push(`valor_compra = COALESCE($${basicIndex}, valor_compra)`);
+          basicValues.push(valor_compra);
+          basicIndex++;
+        }
+        if (valor_venda !== undefined) {
+          basicFields.push(`valor_venda = COALESCE($${basicIndex}, valor_venda)`);
+          basicValues.push(valor_venda);
+          basicIndex++;
+        }
+        
+        basicValues.push(codigo);
+        
+        result = await pool.query(`
+          UPDATE produto
+          SET ${basicFields.join(', ')}
+          WHERE codigo_produto = $${basicIndex}
+          RETURNING *
+        `, basicValues);
+      } else {
+        throw err;
+      }
+    }
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Produto não encontrado.' });
@@ -359,7 +896,7 @@ app.put('/api/produtos/:codigo', async (req, res) => {
     });
   } catch (err) {
     console.error('Erro ao atualizar produto:', err);
-    res.status(500).json({ error: 'Erro ao atualizar produto.' });
+    res.status(500).json({ error: 'Erro ao atualizar produto: ' + err.message });
   }
 });
 
@@ -637,29 +1174,30 @@ app.get('/api/imagens/:nome', async (req, res) => {
     );
     
     if (result.rows.length === 0) {
+      // Se não encontrou na tabela, usar fallback para ampulheta
+      if (nome && nome.toLowerCase() === 'ampulheta') {
+        const fallbackAmpulheta = process.env.AMPULHETA_URL || 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/ampulheta.gif';
+        return res.json({ url_imagem: fallbackAmpulheta, tipo_arquivo: 'gif', descricao: 'fallback: ampulheta pública' });
+      }
       return res.status(404).json({ error: 'Imagem não encontrada.' });
     }
     
     res.json(result.rows[0]);
   } catch (err) {
-    // Log detalhado para debugging
-    console.error('Erro ao buscar imagem:', err);
-
-    // Fallback seguro para a imagem 'ampulheta' quando houver qualquer problema
-    // (ex: tabela ausente 42P01, problemas de permissão, timeout, etc.).
-    // Usamos uma URL pública do Supabase ou a variável de ambiente AMPULHETA_URL
-    // se estiver definida. Isso evita 500s no frontend sem afetar outras rotas.
-    try {
+    // Se a tabela não existe (código 42P01) ou outro erro, usar fallback para ampulheta
+    if (err.code === '42P01' || (err.message && err.message.includes('does not exist'))) {
       const { nome } = req.params;
       const fallbackAmpulheta = process.env.AMPULHETA_URL || 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/ampulheta.gif';
       if (nome && nome.toLowerCase() === 'ampulheta') {
+        // Não logar erro quando a tabela não existe e estamos usando fallback
         return res.json({ url_imagem: fallbackAmpulheta, tipo_arquivo: 'gif', descricao: 'fallback: ampulheta pública' });
       }
-    } catch (innerErr) {
-      console.error('Erro ao aplicar fallback para ampulheta:', innerErr);
+      // Para outras imagens quando a tabela não existe, retornar 404
+      return res.status(404).json({ error: 'Tabela de imagens não configurada. Imagem não encontrada.' });
     }
 
-    // Para outros casos (não-ampulheta), manter o erro 500 com mensagem.
+    // Log detalhado apenas para outros erros
+    console.error('Erro ao buscar imagem:', err);
     res.status(500).json({ error: 'Erro ao buscar imagem: ' + (err.message || String(err)) });
   }
 });
@@ -672,8 +1210,191 @@ app.get('/api/imagens', async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
+    // Se a tabela não existe, retornar array vazio ao invés de erro
+    if (err.code === '42P01' || (err.message && err.message.includes('does not exist'))) {
+      return res.json([]);
+    }
     console.error('Erro ao listar imagens:', err);
     res.status(500).json({ error: 'Erro ao listar imagens.' });
+  }
+});
+
+// ============================================
+// ROTAS DE IMAGENS DE PRODUTOS
+// ============================================
+
+// Função para sanitizar nome do arquivo (reutilizar da rota de cadastro)
+function sanitizeFileName(name) {
+  const normalized = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const sanitized = normalized.replace(/[^a-zA-Z0-9._-]/g, '-');
+  return sanitized.replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+// Listar imagens de um produto/serviço
+app.get('/api/produtos/:codigo/imagens', async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    
+    const result = await pool.query(
+      'SELECT * FROM servico_imagens WHERE codigo_servico = $1 AND ativo = TRUE ORDER BY ordem, id_imagem',
+      [codigo]
+    );
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro ao listar imagens do serviço:', err);
+    res.status(500).json({ error: 'Erro ao listar imagens do serviço.' });
+  }
+});
+
+// Upload de imagem de produto
+app.post('/api/produtos/:codigo/imagens', upload.single('imagem'), async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    const { ordem, descricao } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhuma imagem enviada.' });
+    }
+    
+    // Verificar se produto existe
+    const produtoCheck = await pool.query(
+      'SELECT codigo_produto FROM produto WHERE codigo_produto = $1',
+      [codigo]
+    );
+    
+    if (produtoCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Produto não encontrado.' });
+    }
+    
+    let urlImagem = null;
+    
+    // Upload no Supabase
+    if (supabase && req.file) {
+      const fileExtension = req.file.originalname.split('.').pop() || 'jpg';
+      const sanitizedName = sanitizeFileName(req.file.originalname.replace(/\.[^/.]+$/, ''));
+      const fileName = `servico-${codigo}-${Date.now()}-${sanitizedName}.${fileExtension}`;
+      
+      console.log('📤 Fazendo upload de imagem do serviço:', fileName);
+      
+      const { data, error } = await supabase.storage
+        .from('uploads')
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false
+        });
+
+      if (error) {
+        console.error('❌ Erro no upload do Supabase:', error.message);
+        return res.status(500).json({ error: 'Erro ao salvar imagem: ' + error.message });
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(fileName);
+      
+      urlImagem = publicUrl;
+      
+      if (urlImagem && urlImagem.includes('/upload/s/')) {
+        urlImagem = urlImagem.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+      }
+      
+      console.log('✅ Imagem do serviço salva no Supabase:', urlImagem);
+    } else {
+      return res.status(500).json({ error: 'Supabase não configurado. Upload de imagens desativado.' });
+    }
+    
+    // Inserir no banco
+    const result = await pool.query(
+      `INSERT INTO servico_imagens (codigo_servico, url_imagem, nome_arquivo, tipo_arquivo, ordem, descricao)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [
+        codigo,
+        urlImagem,
+        req.file.originalname,
+        req.file.mimetype.split('/')[1] || 'jpg',
+        parseInt(ordem) || 0,
+        descricao || null
+      ]
+    );
+    
+    res.status(201).json({
+      message: 'Imagem adicionada com sucesso!',
+      imagem: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Erro ao fazer upload de imagem:', err);
+    res.status(500).json({ error: 'Erro ao fazer upload de imagem: ' + err.message });
+  }
+});
+
+// Atualizar ordem ou descrição de imagem
+app.put('/api/produtos/:codigo/imagens/:idImagem', async (req, res) => {
+  try {
+    const { codigo, idImagem } = req.params;
+    const { ordem, descricao } = req.body;
+    
+    const result = await pool.query(
+      `UPDATE servico_imagens 
+       SET ordem = COALESCE($1, ordem), 
+           descricao = COALESCE($2, descricao)
+       WHERE id_imagem = $3 AND codigo_servico = $4
+       RETURNING *`,
+      [ordem ? parseInt(ordem) : null, descricao || null, idImagem, codigo]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Imagem não encontrada.' });
+    }
+    
+    res.json({
+      message: 'Imagem atualizada com sucesso!',
+      imagem: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Erro ao atualizar imagem:', err);
+    res.status(500).json({ error: 'Erro ao atualizar imagem.' });
+  }
+});
+
+// Deletar imagem de produto
+app.delete('/api/produtos/:codigo/imagens/:idImagem', async (req, res) => {
+  try {
+    const { codigo, idImagem } = req.params;
+    
+    // Buscar URL da imagem para deletar do Supabase
+    const imagemResult = await pool.query(
+      'SELECT url_imagem, nome_arquivo FROM servico_imagens WHERE id_imagem = $1 AND codigo_servico = $2',
+      [idImagem, codigo]
+    );
+    
+    if (imagemResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Imagem não encontrada.' });
+    }
+    
+    // Deletar do Supabase (opcional - pode manter para histórico)
+    if (supabase && imagemResult.rows[0].nome_arquivo) {
+      try {
+        // Extrair nome do arquivo da URL ou usar nome_arquivo
+        const fileName = imagemResult.rows[0].nome_arquivo;
+        await supabase.storage.from('uploads').remove([fileName]);
+        console.log('🗑️ Imagem removida do Supabase:', fileName);
+      } catch (supabaseErr) {
+        console.warn('⚠️ Erro ao remover do Supabase (continuando):', supabaseErr);
+      }
+    }
+    
+    // Marcar como inativo no banco (soft delete)
+    await pool.query(
+      'UPDATE servico_imagens SET ativo = FALSE WHERE id_imagem = $1 AND codigo_servico = $2',
+      [idImagem, codigo]
+    );
+    
+    res.json({ message: 'Imagem removida com sucesso!' });
+  } catch (err) {
+    console.error('Erro ao deletar imagem:', err);
+    res.status(500).json({ error: 'Erro ao deletar imagem.' });
   }
 });
 
@@ -701,4 +1422,8 @@ app.listen(PORT, () => {
   console.log(`   GET  /api/dashboard`);
   console.log(`   GET  /api/imagens`);
   console.log(`   GET  /api/imagens/:nome`);
+  console.log(`   GET  /api/produtos/:codigo/imagens`);
+  console.log(`   POST /api/produtos/:codigo/imagens`);
+  console.log(`   PUT  /api/produtos/:codigo/imagens/:idImagem`);
+  console.log(`   DELETE /api/produtos/:codigo/imagens/:idImagem`);
 });
