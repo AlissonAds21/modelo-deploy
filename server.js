@@ -85,6 +85,51 @@ const createServicosTable = `
 `;
 pool.query(createServicosTable).catch(err => console.error('Erro ao criar tabela servicos:', err));
 
+// Criar tabelas de anúncios (em sequência para garantir ordem)
+(async () => {
+  try {
+    // 1. Criar tabela de anúncios primeiro
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS anuncios (
+        id_anuncio SERIAL PRIMARY KEY,
+        tipo_servico VARCHAR(100) NOT NULL,
+        especialidade VARCHAR(100) NOT NULL,
+        valor DECIMAL(20,2) NOT NULL,
+        titulo_anuncio VARCHAR(100) NOT NULL,
+        descricao_anuncio VARCHAR(100) NOT NULL,
+        usuario_id INTEGER REFERENCES cadastro_usuario(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        ativo BOOLEAN DEFAULT TRUE
+      );
+    `);
+    console.log('✅ Tabela anuncios criada/verificada');
+    
+    // 2. Criar tabela de imagens de anúncios (depende de anuncios)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS imagens_anuncios (
+        id_imagens SERIAL PRIMARY KEY,
+        id_anuncio INTEGER NOT NULL REFERENCES anuncios(id_anuncio) ON DELETE CASCADE,
+        url_imagens VARCHAR(200) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    console.log('✅ Tabela imagens_anuncios criada/verificada');
+    
+    // 3. Criar índices (dependem das tabelas existirem)
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_imagens_anuncios_id_anuncio ON imagens_anuncios(id_anuncio);
+    `);
+    console.log('✅ Índice idx_imagens_anuncios_id_anuncio criado/verificado');
+    
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_imagens_anuncios_id_imagens ON imagens_anuncios(id_imagens DESC);
+    `);
+    console.log('✅ Índice idx_imagens_anuncios_id_imagens criado/verificado');
+  } catch (err) {
+    console.error('❌ Erro ao criar tabelas/índices de anúncios:', err.message);
+  }
+})();
+
 // Adicionar colunas se não existirem
 pool.query(`
   ALTER TABLE servicos
@@ -868,12 +913,12 @@ app.post('/api/enderecos', verificarToken, async (req, res) => {
       return res.status(400).json({ error: 'Número é obrigatório.' });
     }
     
-    // Inserir endereço (tipo_endereco padrão como 'Cliente')
+    // Inserir endereço
     const result = await pool.query(
-      `INSERT INTO endereco (cep, logradouro, numero, complemento, bairro, cidade, estado, pais, tipo_endereco, usuario_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO endereco (cep, logradouro, numero, complemento, bairro, cidade, estado, pais, usuario_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
-      [cep, logradouro || null, numero, complemento || null, bairro || null, cidade || null, estado || null, pais || 'Brasil', 'Cliente', usuarioId]
+      [cep, logradouro || null, numero, complemento || null, bairro || null, cidade || null, estado || null, pais || 'Brasil', usuarioId]
     );
     
     const enderecoId = result.rows[0].id;
@@ -924,7 +969,7 @@ app.get('/api/enderecos', verificarToken, async (req, res) => {
 // Criar serviço com fotos
 app.post('/api/servicos', verificarToken, upload.array('fotos', 8), async (req, res) => {
   try {
-    const { tipo_servico, servico, titulo_servico, descricao_servico, valor_servico } = req.body;
+    const { tipo_servico, especialidade, valor, titulo_anuncio, descricao_anuncio } = req.body;
     const usuarioId = req.userId;
     
     // Verificar se usuário é Profissional ou Master
@@ -939,25 +984,32 @@ app.post('/api/servicos', verificarToken, upload.array('fotos', 8), async (req, 
     
     const perfilUsuario = usuario.rows[0].perfil;
     if (perfilUsuario !== 1 && perfilUsuario !== 3) {
-      return res.status(403).json({ error: 'Apenas usuários Profissional ou Master podem criar serviços.' });
+      return res.status(403).json({ error: 'Apenas usuários Profissional ou Master podem criar anúncios.' });
     }
     
     // Validações
-    if (!tipo_servico || !servico || !titulo_servico) {
-      return res.status(400).json({ error: 'Tipo de serviço, serviço e título são obrigatórios.' });
+    if (!tipo_servico || !especialidade || !titulo_anuncio || !descricao_anuncio) {
+      return res.status(400).json({ error: 'Tipo de serviço, especialidade, título e descrição são obrigatórios.' });
     }
     
-    // Inserir serviço
-    const result = await pool.query(
-      `INSERT INTO servicos (tipo_servico, servico, titulo_servico, descricao_servico, valor_servico, usuario_id, ativo)
+    // Validar valor (deve ser numérico)
+    const valorDecimal = valor ? parseFloat(valor) : 0;
+    if (isNaN(valorDecimal) || valorDecimal < 0) {
+      return res.status(400).json({ error: 'Valor inválido. Deve ser um número positivo.' });
+    }
+    
+    // PASSO 1: Inserir anúncio na tabela anuncios
+    const resultAnuncio = await pool.query(
+      `INSERT INTO anuncios (tipo_servico, especialidade, valor, titulo_anuncio, descricao_anuncio, usuario_id, ativo)
        VALUES ($1, $2, $3, $4, $5, $6, TRUE)
-       RETURNING id_servico`,
-      [tipo_servico, servico, titulo_servico, descricao_servico || null, valor_servico || 0, usuarioId]
+       RETURNING id_anuncio`,
+      [tipo_servico, especialidade, valorDecimal, titulo_anuncio, descricao_anuncio, usuarioId]
     );
     
-    const servicoId = result.rows[0].id_servico;
+    const idAnuncio = resultAnuncio.rows[0].id_anuncio;
     
-    // Upload de fotos se houver
+    // PASSO 2: Upload e salvar imagens na tabela imagens_anuncios
+    const imagensSalvas = [];
     if (req.files && req.files.length > 0 && supabase) {
       for (let i = 0; i < req.files.length; i++) {
         const file = req.files[i];
@@ -971,7 +1023,7 @@ app.post('/api/servicos', verificarToken, upload.array('fotos', 8), async (req, 
         
         const fileExtension = file.originalname.split('.').pop() || 'jpg';
         const sanitizedName = sanitizeFileName(file.originalname.replace(/\.[^/.]+$/, ''));
-        const fileName = `servico-${servicoId}-${Date.now()}-${i}-${sanitizedName}.${fileExtension}`;
+        const fileName = `anuncio-${idAnuncio}-${Date.now()}-${i}-${sanitizedName}.${fileExtension}`;
         
         const { data, error } = await supabase.storage
           .from('uploads')
@@ -981,8 +1033,8 @@ app.post('/api/servicos', verificarToken, upload.array('fotos', 8), async (req, 
           });
 
         if (error) {
-          console.error('❌ Erro no upload da foto:', error.message);
-          continue; // Continuar com outras fotos mesmo se uma falhar
+          console.error('❌ Erro no upload da imagem:', error.message);
+          continue; // Continuar com outras imagens mesmo se uma falhar
         }
 
         const { data: { publicUrl } } = supabase.storage
@@ -994,13 +1046,18 @@ app.post('/api/servicos', verificarToken, upload.array('fotos', 8), async (req, 
           urlImagem = urlImagem.replace('/upload/s/', '/storage/v1/object/public/uploads/');
         }
         
-        // Inserir imagem na tabela produto_imagens (usando id_servico como codigo_produto)
+        // Inserir imagem na tabela imagens_anuncios
         try {
-          await pool.query(
-            `INSERT INTO produto_imagens (codigo_produto, url_imagem, nome_arquivo, tipo_arquivo, ordem, descricao, ativo)
-             VALUES ($1, $2, $3, $4, $5, $6, TRUE)`,
-            [servicoId, urlImagem, file.originalname, fileExtension, i, `Foto ${i + 1} do serviço`]
+          const resultImagem = await pool.query(
+            `INSERT INTO imagens_anuncios (id_anuncio, url_imagens)
+             VALUES ($1, $2)
+             RETURNING id_imagens`,
+            [idAnuncio, urlImagem]
           );
+          imagensSalvas.push({
+            id_imagens: resultImagem.rows[0].id_imagens,
+            url_imagens: urlImagem
+          });
         } catch (imgError) {
           console.error('Erro ao salvar imagem no banco:', imgError);
           // Continuar mesmo se falhar
@@ -1009,17 +1066,18 @@ app.post('/api/servicos', verificarToken, upload.array('fotos', 8), async (req, 
     }
     
     // Registrar histórico
-    await registrarHistorico(usuarioId, `Serviço criado: ${titulo_servico}`);
+    await registrarHistorico(usuarioId, `Anúncio criado: ${titulo_anuncio} (ID: ${idAnuncio})`);
     
     res.status(201).json({
-      message: 'Serviço criado com sucesso!',
-      servico: {
-        id_servico: servicoId,
+      message: 'Anúncio criado com sucesso!',
+      anuncio: {
+        id_anuncio: idAnuncio,
         tipo_servico,
-        servico,
-        titulo_servico,
-        descricao_servico,
-        valor_servico
+        especialidade,
+        valor: valorDecimal,
+        titulo_anuncio,
+        descricao_anuncio,
+        imagens: imagensSalvas
       }
     });
   } catch (err) {
@@ -1028,65 +1086,103 @@ app.post('/api/servicos', verificarToken, upload.array('fotos', 8), async (req, 
   }
 });
 
-// Buscar últimos 8 produtos/serviços para exibir na seção "Últimas Postagens Atualizadas"
+// Buscar últimos 8 produtos/anúncios para exibir na seção "Últimas Postagens Atualizadas"
 app.get('/api/produtos/ultimos', async (req, res) => {
   try {
     const items = [];
     
-    // Buscar últimos produtos
+    // Buscar últimos anúncios (prioridade - LIFO por id_imagens)
     try {
-      const produtosResult = await pool.query(`
+      const anunciosResult = await pool.query(`
         SELECT 
-          p.codigo_produto,
-          p.produto as titulo,
-          p.marca,
-          COALESCE(p.valor_venda, 0) AS valor_venda,
-          p.ativo,
-          'produto' as tipo
-        FROM produto p
-        WHERE (p.ativo = TRUE OR p.ativo IS NULL)
-        ORDER BY p.codigo_produto DESC
-        LIMIT 4
+          i.id_imagens,
+          i.url_imagens as imagem,
+          a.titulo_anuncio as titulo,
+          a.especialidade as marca,
+          a.valor as valor_venda,
+          a.id_anuncio,
+          'anuncio' as tipo,
+          i.created_at
+        FROM imagens_anuncios i
+        JOIN anuncios a ON i.id_anuncio = a.id_anuncio
+        WHERE a.ativo = TRUE
+        ORDER BY i.id_imagens DESC
+        LIMIT 8
       `);
       
-      // Para cada produto, buscar a primeira imagem
-      for (const produto of produtosResult.rows) {
-        try {
-          const imgResult = await pool.query(
-            `SELECT url_imagem FROM produto_imagens 
-             WHERE codigo_produto = $1 AND ativo = TRUE 
-             ORDER BY ordem ASC, id_imagem ASC 
-             LIMIT 1`,
-            [produto.codigo_produto]
-          );
-          
-          items.push({
-            id: produto.codigo_produto,
-            codigo_produto: produto.codigo_produto,
-            produto: produto.titulo,
-            titulo: produto.titulo,
-            marca: produto.marca,
-            valor_venda: produto.valor_venda,
-            imagem: imgResult.rows.length > 0 ? imgResult.rows[0].url_imagem : null,
-            tipo: 'produto',
-            created_at: null
-          });
-        } catch (imgError) {
-          items.push({
-            id: produto.codigo_produto,
-            codigo_produto: produto.codigo_produto,
-            produto: produto.titulo,
-            titulo: produto.titulo,
-            marca: produto.marca,
-            valor_venda: produto.valor_venda,
-            imagem: null,
-            tipo: 'produto',
-            created_at: null
-          });
-        }
+      for (const anuncio of anunciosResult.rows) {
+        items.push({
+          id: anuncio.id_anuncio,
+          codigo_produto: anuncio.id_anuncio,
+          produto: anuncio.titulo,
+          titulo: anuncio.titulo,
+          marca: anuncio.marca,
+          valor_venda: parseFloat(anuncio.valor_venda) || 0,
+          imagem: anuncio.imagem,
+          tipo: 'anuncio',
+          created_at: anuncio.created_at
+        });
       }
-    } catch (prodError) {
-      console.warn('Erro ao buscar produtos:', prodError.message);
+    } catch (anuncioError) {
+      console.warn('Erro ao buscar anúncios:', anuncioError.message);
+    }
+    
+    // Se não tiver 8 anúncios, buscar produtos para completar
+    if (items.length < 8) {
+      try {
+        const produtosResult = await pool.query(`
+          SELECT 
+            p.codigo_produto,
+            p.produto as titulo,
+            p.marca,
+            COALESCE(p.valor_venda, 0) AS valor_venda,
+            p.ativo,
+            'produto' as tipo
+          FROM produto p
+          WHERE (p.ativo = TRUE OR p.ativo IS NULL)
+          ORDER BY p.codigo_produto DESC
+          LIMIT $1
+        `, [Math.max(1, 8 - items.length)]);
+        
+        // Para cada produto, buscar a primeira imagem
+        for (const produto of produtosResult.rows) {
+          try {
+            const imgResult = await pool.query(
+              `SELECT url_imagem FROM produto_imagens 
+               WHERE codigo_produto = $1 AND ativo = TRUE 
+               ORDER BY ordem ASC, id_imagem ASC 
+               LIMIT 1`,
+              [produto.codigo_produto]
+            );
+            
+            items.push({
+              id: produto.codigo_produto,
+              codigo_produto: produto.codigo_produto,
+              produto: produto.titulo,
+              titulo: produto.titulo,
+              marca: produto.marca,
+              valor_venda: produto.valor_venda,
+              imagem: imgResult.rows.length > 0 ? imgResult.rows[0].url_imagem : null,
+              tipo: 'produto',
+              created_at: null
+            });
+          } catch (imgError) {
+            items.push({
+              id: produto.codigo_produto,
+              codigo_produto: produto.codigo_produto,
+              produto: produto.titulo,
+              titulo: produto.titulo,
+              marca: produto.marca,
+              valor_venda: produto.valor_venda,
+              imagem: null,
+              tipo: 'produto',
+              created_at: null
+            });
+          }
+        }
+      } catch (prodError) {
+        console.warn('Erro ao buscar produtos:', prodError.message);
+      }
     }
     
     // Buscar últimos serviços

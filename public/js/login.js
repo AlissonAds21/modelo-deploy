@@ -67,6 +67,16 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
       const result = await response.json();
   
       if (response.ok) {
+        // Salvar email/CPF no autocomplete
+        if (typeof autocompleteManager !== 'undefined') {
+          const loginValue = email.trim();
+          if (loginValue.includes('@')) {
+            autocompleteManager.saveValue('email', loginValue);
+          } else if (loginValue.replace(/\D/g, '').length >= 10) {
+            autocompleteManager.saveValue('cpf', loginValue);
+          }
+        }
+        
         // Armazenar token e dados do usuário
         if (result.token) {
           localStorage.setItem('token', result.token);

@@ -163,6 +163,44 @@ select.form-control:focus {
     border-color: #587bfa; /* Borda azul-roxo ao focar */
 }
 
+/* Autocomplete dropdown */
+.form-group {
+    position: relative;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #587bfa;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin-top: -2px;
+}
+
+.autocomplete-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s ease;
+    font-size: 14px;
+    color: #001f3f;
+}
+
+.autocomplete-item:hover {
+    background-color: #f0f4ff;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
 /* Estilo específico para select */
 select.form-control {
     cursor: pointer;
@@ -360,6 +398,27 @@ select.form-control {
     color: #4568dc;
 }
 
+/* Container de ações do formulário (minha-conta.html) */
+.form-actions-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.form-actions-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.address-link-container {
+    display: flex;
+    align-items: center;
+}
+
 /* Botões do formulário de endereço */
 .form-buttons {
     display: flex;
@@ -516,6 +575,27 @@ select.form-control {
         font-size: 14px;
         width: 100%;
         margin-bottom: 8px;
+    }
+
+    .form-actions-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .form-actions-buttons {
+        width: 100%;
+    }
+
+    .form-actions-buttons .btn-primary,
+    .form-actions-buttons .btn-secondary {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .address-link-container {
+        width: 100%;
+        margin-top: 5px;
     }
 
     .login-link {

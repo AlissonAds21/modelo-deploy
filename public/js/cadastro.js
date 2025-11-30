@@ -47,6 +47,12 @@ document.getElementById('cadastroForm').addEventListener('submit', async (e) => 
       const result = await response.json();
   
       if (response.ok) {
+        // Salvar valores no autocomplete antes de redirecionar
+        if (typeof autocompleteManager !== 'undefined') {
+          if (data.email) autocompleteManager.saveValue('email', data.email);
+          if (data.cpf) autocompleteManager.saveValue('cpf', data.cpf);
+          if (data.nome) autocompleteManager.saveValue('nome', data.nome);
+        }
         alert(result.message);
         window.location.href = 'login.html';
       } else {
