@@ -48,3 +48,4 @@ FROM information_schema.columns
 WHERE table_name = 'cadastro_usuario' 
 ORDER BY ordinal_position;
 
+

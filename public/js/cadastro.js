@@ -1,3 +1,27 @@
+// Garantir que todos os campos iniciem vazios
+document.addEventListener('DOMContentLoaded', () => {
+  const campos = ['nome', 'cpf', 'email', 'perfil', 'senha', 'confirmarSenha'];
+  campos.forEach(campoId => {
+    const campo = document.getElementById(campoId);
+    if (campo) {
+      campo.value = '';
+      if (campoId === 'senha' || campoId === 'confirmarSenha') {
+        campo.setAttribute('autocomplete', 'new-password');
+      } else {
+        campo.setAttribute('autocomplete', 'off');
+      }
+    }
+  });
+  
+  // Limpar qualquer valor que possa ter sido preenchido pelo navegador
+  setTimeout(() => {
+    campos.forEach(campoId => {
+      const campo = document.getElementById(campoId);
+      if (campo && campo.value) campo.value = '';
+    });
+  }, 100);
+});
+
 document.getElementById('cadastroForm').addEventListener('submit', async (e) => {
     e.preventDefault();
   

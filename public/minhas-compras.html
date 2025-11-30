@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Compras - LOS PATRONES DA REFORMA</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="minhas-compras.css">
+</head>
+<body>
+    <header>
+        <div class="imagem-logo">
+            <img src="/imagensSite/logo.png" alt="Logo LOS PATRONES DA REFORMA" class="logo" onclick="location.href='index.html'">
+        </div>
+        
+        <div class="social-icons">
+            <a href="#">📞 WhatsApp</a>
+            <a href="#">📷 Instagram</a>
+            <a href="#">📘 Facebook</a>
+            <a href="#">🐦 Twitter</a>
+            <a href="#">✉️ Gmail</a>
+        </div>
+        <div class="auth-buttons" id="authButtons">
+            <!-- Botões serão gerados via JavaScript index.js-->
+        </div>
+    </header>
+
+    <div class="menu-container">
+        <nav>
+            <ul>
+                <li><a href="admin.html">Dashboard</a></li>
+                <li><a href="index.html">Início</a></li>
+                <li><a href="produtos.html">Anúncios</a></li>
+                <li><a href="#">Sobre Nós</a></li>
+                <li><a href="#">Contato</a></li>
+                <li><a href="#">Trabalhe Conosco</a></li>
+                <li class="search-box">
+                    <span>🔍</span>
+                    <input type="text" placeholder="Pesquisar...">
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <main class="compras-main">
+        <h1>Minhas Compras</h1>
+        <div id="comprasContainer" class="compras-container">
+            <div class="loading">Carregando histórico de compras...</div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Comercio e-commerce produtos "LOS PATRONES DA REFORMA" ltda.</p>
+        <p>Endereço: Av. Brasil 1005, CEP 07352-090 centro, São Paulo, SP Brasil</p>
+    </footer>
+
+    <script src="js/index.js"></script>
+    <script src="js/minhas-compras.js"></script>
+</body>
+</html>
+

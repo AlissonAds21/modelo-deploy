@@ -77,10 +77,29 @@ const createServicosTable = `
     titulo_servico VARCHAR(100),
     servico VARCHAR(200),
     descricao_servico TEXT,
-    valor_servico NUMERIC(10,2)
+    valor_servico NUMERIC(10,2),
+    usuario_id INTEGER REFERENCES cadastro_usuario(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    ativo BOOLEAN DEFAULT TRUE
   );
 `;
 pool.query(createServicosTable).catch(err => console.error('Erro ao criar tabela servicos:', err));
+
+// Adicionar colunas se não existirem
+pool.query(`
+  ALTER TABLE servicos
+  ADD COLUMN IF NOT EXISTS usuario_id INTEGER REFERENCES cadastro_usuario(id) ON DELETE CASCADE;
+`).catch(err => console.error('Erro ao adicionar coluna usuario_id:', err));
+
+pool.query(`
+  ALTER TABLE servicos
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
+`).catch(err => console.error('Erro ao adicionar coluna created_at:', err));
+
+pool.query(`
+  ALTER TABLE servicos
+  ADD COLUMN IF NOT EXISTS ativo BOOLEAN DEFAULT TRUE;
+`).catch(err => console.error('Erro ao adicionar coluna ativo:', err));
 
 // Criar tabela cadastro_usuario com novas colunas
 const createTable = `
@@ -127,9 +146,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Servir arquivos estáticos (deve vir ANTES das rotas de API)
+// Servir arquivos estáticos
 app.use(express.static('public'));
 app.use('/imagensSite', express.static('public/imagensSite'));
 app.use('/imagens', express.static('public/imagens'));
+
+// Garantir que a rota raiz sempre sirva index.html
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/index.html');
+});
 
 // === UPLOAD CONFIG (suporta local e Supabase) ===
 const upload = multer({
@@ -142,7 +167,7 @@ const upload = multer({
 
 // === ROTA: CADASTRO ===
 app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
-  const { nome, cpf, email, senha } = req.body;
+  const { nome, cpf, email, senha, perfil } = req.body;
   let fotoPerfilUrl = null;
 
   try {
@@ -216,6 +241,12 @@ app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
       return res.status(409).json({ error: 'CPF ou e-mail já cadastrado.' });
     }
 
+    // Validar perfil (2 = Cliente, 3 = Profissional, padrão = 2)
+    const perfilId = perfil ? parseInt(perfil) : 2;
+    if (perfilId !== 2 && perfilId !== 3) {
+      return res.status(400).json({ error: 'Perfil inválido. Use Cliente (2) ou Profissional (3).' });
+    }
+    
     // Criar usuário (perfil padrão = 2 = Cliente, status = 'Ativo')
     const hashSenha = await bcrypt.hash(senha, 10);
     
@@ -226,7 +257,7 @@ app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
     try {
       const result = await pool.query(
         'INSERT INTO cadastro_usuario (nome, perfil, cpf, email, senha, "fotoPerfil", status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-        [nome, 2, cpf, email, hashSenha, fotoPerfilUrl, 'Ativo']
+        [nome, perfilId, cpf, email, hashSenha, fotoPerfilUrl, 'Ativo']
       );
       userId = result.rows[0].id;
     } catch (insertError) {
@@ -235,7 +266,7 @@ app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
         console.log('⚠️ Tentando com coluna em minúsculo...');
         const result = await pool.query(
           'INSERT INTO cadastro_usuario (nome, perfil, cpf, email, senha, fotoperfil, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-          [nome, 2, cpf, email, hashSenha, fotoPerfilUrl, 'Ativo']
+          [nome, perfilId, cpf, email, hashSenha, fotoPerfilUrl, 'Ativo']
         );
         userId = result.rows[0].id;
       } else {
@@ -480,14 +511,27 @@ app.get('/api/usuarios/:id', verificarToken, async (req, res) => {
       return res.status(403).json({ error: 'Acesso negado.' });
     }
     
-    const result = await pool.query(
-      `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
-              u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
-       FROM cadastro_usuario u
-       LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
-       WHERE u.id = $1`,
-      [id]
-    );
+    let result;
+    try {
+      result = await pool.query(
+        `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
+                u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
+         FROM cadastro_usuario u
+         LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+         WHERE u.id = $1`,
+        [id]
+      );
+    } catch (colError) {
+      // Se der erro, tentar sem aspas (minúsculo)
+      result = await pool.query(
+        `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
+                u.fotoperfil, p.perfil as nome_perfil
+         FROM cadastro_usuario u
+         LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+         WHERE u.id = $1`,
+        [id]
+      );
+    }
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Usuário não encontrado.' });
@@ -497,6 +541,173 @@ app.get('/api/usuarios/:id', verificarToken, async (req, res) => {
   } catch (err) {
     console.error('Erro ao buscar usuário:', err);
     res.status(500).json({ error: 'Erro ao buscar usuário.' });
+  }
+});
+
+// Atualizar dados do usuário (nome, CPF, email, senha, foto)
+app.put('/api/usuarios/:id', verificarToken, upload.single('fotoPerfil'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome, cpf, email, senha } = req.body;
+    
+    // Verificar se o usuário pode atualizar (só pode atualizar a si mesmo, exceto Master)
+    if (req.userPerfil !== 1 && parseInt(id) !== req.userId) {
+      return res.status(403).json({ error: 'Acesso negado. Você só pode atualizar seus próprios dados.' });
+    }
+    
+    // Verificar se usuário existe
+    const userCheck = await pool.query(
+      'SELECT id, nome FROM cadastro_usuario WHERE id = $1',
+      [id]
+    );
+    
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    // Preparar campos para atualização
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+    
+    if (nome) {
+      updates.push(`nome = $${paramIndex++}`);
+      values.push(nome);
+    }
+    
+    if (cpf) {
+      // Verificar se CPF já existe para outro usuário
+      const cpfCheck = await pool.query(
+        'SELECT id FROM cadastro_usuario WHERE cpf = $1 AND id != $2',
+        [cpf, id]
+      );
+      if (cpfCheck.rows.length > 0) {
+        return res.status(409).json({ error: 'CPF já cadastrado para outro usuário.' });
+      }
+      updates.push(`cpf = $${paramIndex++}`);
+      values.push(cpf);
+    }
+    
+    if (email) {
+      // Verificar se email já existe para outro usuário
+      const emailCheck = await pool.query(
+        'SELECT id FROM cadastro_usuario WHERE LOWER(email) = LOWER($1) AND id != $2',
+        [email, id]
+      );
+      if (emailCheck.rows.length > 0) {
+        return res.status(409).json({ error: 'E-mail já cadastrado para outro usuário.' });
+      }
+      updates.push(`email = $${paramIndex++}`);
+      values.push(email);
+    }
+    
+    if (senha) {
+      const hashSenha = await bcrypt.hash(senha, 10);
+      updates.push(`senha = $${paramIndex++}`);
+      values.push(hashSenha);
+    }
+    
+    // Processar upload de foto
+    let fotoPerfilUrl = null;
+    if (req.file && supabase) {
+      // Função para sanitizar nome do arquivo
+      function sanitizeFileName(name) {
+        const normalized = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const sanitized = normalized.replace(/[^a-zA-Z0-9._-]/g, '-');
+        return sanitized.replace(/-+/g, '-').replace(/^-|-$/g, '');
+      }
+      
+      const fileExtension = req.file.originalname.split('.').pop() || 'jpg';
+      const sanitizedName = sanitizeFileName(req.file.originalname.replace(/\.[^/.]+$/, ''));
+      const fileName = `${id}-${Date.now()}-${sanitizedName}.${fileExtension}`;
+      
+      const { data, error } = await supabase.storage
+        .from('uploads')
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false
+        });
+
+      if (error) {
+        console.error('❌ Erro no upload do Supabase:', error.message);
+        return res.status(500).json({ error: 'Erro ao salvar imagem: ' + error.message });
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(fileName);
+      
+      fotoPerfilUrl = publicUrl;
+      
+      if (fotoPerfilUrl && fotoPerfilUrl.includes('/upload/s/')) {
+        fotoPerfilUrl = fotoPerfilUrl.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+      }
+      
+      // Adicionar foto aos updates
+      try {
+        updates.push(`"fotoPerfil" = $${paramIndex++}`);
+        values.push(fotoPerfilUrl);
+      } catch (colError) {
+        updates.push(`fotoperfil = $${paramIndex++}`);
+        values.push(fotoPerfilUrl);
+      }
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo para atualizar.' });
+    }
+    
+    // Adicionar ID aos valores
+    values.push(id);
+    
+    // Executar update
+    let updateQuery;
+    try {
+      updateQuery = `UPDATE cadastro_usuario SET ${updates.join(', ')} WHERE id = $${paramIndex}`;
+      await pool.query(updateQuery, values);
+    } catch (updateError) {
+      // Se der erro com "fotoPerfil", tentar com "fotoperfil"
+      if (updateError.code === '42703' || updateError.message.includes('does not exist')) {
+        const updatesFixed = updates.map(u => u.replace('"fotoPerfil"', 'fotoperfil'));
+        updateQuery = `UPDATE cadastro_usuario SET ${updatesFixed.join(', ')} WHERE id = $${paramIndex}`;
+        await pool.query(updateQuery, values);
+      } else {
+        throw updateError;
+      }
+    }
+    
+    // Registrar histórico
+    await registrarHistorico(parseInt(id), 'Dados atualizados pelo próprio usuário');
+    
+    // Buscar dados atualizados
+    let result;
+    try {
+      result = await pool.query(
+        `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
+                u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
+         FROM cadastro_usuario u
+         LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+         WHERE u.id = $1`,
+        [id]
+      );
+    } catch (colError) {
+      result = await pool.query(
+        `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
+                u.fotoperfil, p.perfil as nome_perfil
+         FROM cadastro_usuario u
+         LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+         WHERE u.id = $1`,
+        [id]
+      );
+    }
+    
+    res.json({
+      message: 'Dados atualizados com sucesso!',
+      usuario: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Erro ao atualizar usuário:', err);
+    res.status(500).json({ error: 'Erro ao atualizar usuário.' });
   }
 });
 
@@ -635,6 +846,321 @@ app.get('/api/usuarios/:id/historico', verificarToken, async (req, res) => {
   } catch (err) {
     console.error('Erro ao buscar histórico:', err);
     res.status(500).json({ error: 'Erro ao buscar histórico.' });
+  }
+});
+
+// ============================================
+// ROTAS DE ENDEREÇOS
+// ============================================
+
+// Cadastrar endereço
+app.post('/api/enderecos', verificarToken, async (req, res) => {
+  try {
+    const { cep, logradouro, numero, complemento, bairro, cidade, estado, pais } = req.body;
+    const usuarioId = req.userId;
+    
+    // Validações
+    if (!cep || cep.length !== 8) {
+      return res.status(400).json({ error: 'CEP inválido.' });
+    }
+    
+    if (!numero) {
+      return res.status(400).json({ error: 'Número é obrigatório.' });
+    }
+    
+    // Inserir endereço (tipo_endereco padrão como 'Cliente')
+    const result = await pool.query(
+      `INSERT INTO endereco (cep, logradouro, numero, complemento, bairro, cidade, estado, pais, tipo_endereco, usuario_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [cep, logradouro || null, numero, complemento || null, bairro || null, cidade || null, estado || null, pais || 'Brasil', 'Cliente', usuarioId]
+    );
+    
+    const enderecoId = result.rows[0].id;
+    
+    // Atualizar referência no cadastro_usuario (opcional)
+    await pool.query(
+      'UPDATE cadastro_usuario SET endereco_id = $1 WHERE id = $2',
+      [enderecoId, usuarioId]
+    ).catch(err => {
+      // Se a coluna não existir, não é crítico
+      console.warn('⚠️ Coluna endereco_id não existe ou erro ao atualizar:', err.message);
+    });
+    
+    // Registrar histórico
+    await registrarHistorico(usuarioId, `Endereço cadastrado: ${logradouro}, ${numero} - ${cidade}/${estado}`);
+    
+    res.status(201).json({
+      message: 'Endereço cadastrado com sucesso!',
+      endereco: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Erro ao cadastrar endereço:', err);
+    res.status(500).json({ error: 'Erro ao cadastrar endereço.' });
+  }
+});
+
+// Listar endereços do usuário logado
+app.get('/api/enderecos', verificarToken, async (req, res) => {
+  try {
+    const usuarioId = req.userId;
+    
+    const result = await pool.query(
+      'SELECT * FROM endereco WHERE usuario_id = $1 ORDER BY created_at DESC',
+      [usuarioId]
+    );
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro ao listar endereços:', err);
+    res.status(500).json({ error: 'Erro ao listar endereços.' });
+  }
+});
+
+// ============================================
+// ROTAS DE SERVIÇOS
+// ============================================
+
+// Criar serviço com fotos
+app.post('/api/servicos', verificarToken, upload.array('fotos', 8), async (req, res) => {
+  try {
+    const { tipo_servico, servico, titulo_servico, descricao_servico, valor_servico } = req.body;
+    const usuarioId = req.userId;
+    
+    // Verificar se usuário é Profissional ou Master
+    const usuario = await pool.query(
+      'SELECT perfil FROM cadastro_usuario WHERE id = $1',
+      [usuarioId]
+    );
+    
+    if (usuario.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    const perfilUsuario = usuario.rows[0].perfil;
+    if (perfilUsuario !== 1 && perfilUsuario !== 3) {
+      return res.status(403).json({ error: 'Apenas usuários Profissional ou Master podem criar serviços.' });
+    }
+    
+    // Validações
+    if (!tipo_servico || !servico || !titulo_servico) {
+      return res.status(400).json({ error: 'Tipo de serviço, serviço e título são obrigatórios.' });
+    }
+    
+    // Inserir serviço
+    const result = await pool.query(
+      `INSERT INTO servicos (tipo_servico, servico, titulo_servico, descricao_servico, valor_servico, usuario_id, ativo)
+       VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+       RETURNING id_servico`,
+      [tipo_servico, servico, titulo_servico, descricao_servico || null, valor_servico || 0, usuarioId]
+    );
+    
+    const servicoId = result.rows[0].id_servico;
+    
+    // Upload de fotos se houver
+    if (req.files && req.files.length > 0 && supabase) {
+      for (let i = 0; i < req.files.length; i++) {
+        const file = req.files[i];
+        
+        // Sanitizar nome do arquivo
+        function sanitizeFileName(name) {
+          const normalized = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          const sanitized = normalized.replace(/[^a-zA-Z0-9._-]/g, '-');
+          return sanitized.replace(/-+/g, '-').replace(/^-|-$/g, '');
+        }
+        
+        const fileExtension = file.originalname.split('.').pop() || 'jpg';
+        const sanitizedName = sanitizeFileName(file.originalname.replace(/\.[^/.]+$/, ''));
+        const fileName = `servico-${servicoId}-${Date.now()}-${i}-${sanitizedName}.${fileExtension}`;
+        
+        const { data, error } = await supabase.storage
+          .from('uploads')
+          .upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+            upsert: false
+          });
+
+        if (error) {
+          console.error('❌ Erro no upload da foto:', error.message);
+          continue; // Continuar com outras fotos mesmo se uma falhar
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('uploads')
+          .getPublicUrl(fileName);
+        
+        let urlImagem = publicUrl;
+        if (urlImagem && urlImagem.includes('/upload/s/')) {
+          urlImagem = urlImagem.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+        }
+        
+        // Inserir imagem na tabela produto_imagens (usando id_servico como codigo_produto)
+        try {
+          await pool.query(
+            `INSERT INTO produto_imagens (codigo_produto, url_imagem, nome_arquivo, tipo_arquivo, ordem, descricao, ativo)
+             VALUES ($1, $2, $3, $4, $5, $6, TRUE)`,
+            [servicoId, urlImagem, file.originalname, fileExtension, i, `Foto ${i + 1} do serviço`]
+          );
+        } catch (imgError) {
+          console.error('Erro ao salvar imagem no banco:', imgError);
+          // Continuar mesmo se falhar
+        }
+      }
+    }
+    
+    // Registrar histórico
+    await registrarHistorico(usuarioId, `Serviço criado: ${titulo_servico}`);
+    
+    res.status(201).json({
+      message: 'Serviço criado com sucesso!',
+      servico: {
+        id_servico: servicoId,
+        tipo_servico,
+        servico,
+        titulo_servico,
+        descricao_servico,
+        valor_servico
+      }
+    });
+  } catch (err) {
+    console.error('Erro ao criar serviço:', err);
+    res.status(500).json({ error: 'Erro ao criar serviço.' });
+  }
+});
+
+// Buscar últimos 8 produtos/serviços para exibir na seção "Últimas Postagens Atualizadas"
+app.get('/api/produtos/ultimos', async (req, res) => {
+  try {
+    const items = [];
+    
+    // Buscar últimos produtos
+    try {
+      const produtosResult = await pool.query(`
+        SELECT 
+          p.codigo_produto,
+          p.produto as titulo,
+          p.marca,
+          COALESCE(p.valor_venda, 0) AS valor_venda,
+          p.ativo,
+          'produto' as tipo
+        FROM produto p
+        WHERE (p.ativo = TRUE OR p.ativo IS NULL)
+        ORDER BY p.codigo_produto DESC
+        LIMIT 4
+      `);
+      
+      // Para cada produto, buscar a primeira imagem
+      for (const produto of produtosResult.rows) {
+        try {
+          const imgResult = await pool.query(
+            `SELECT url_imagem FROM produto_imagens 
+             WHERE codigo_produto = $1 AND ativo = TRUE 
+             ORDER BY ordem ASC, id_imagem ASC 
+             LIMIT 1`,
+            [produto.codigo_produto]
+          );
+          
+          items.push({
+            id: produto.codigo_produto,
+            codigo_produto: produto.codigo_produto,
+            produto: produto.titulo,
+            titulo: produto.titulo,
+            marca: produto.marca,
+            valor_venda: produto.valor_venda,
+            imagem: imgResult.rows.length > 0 ? imgResult.rows[0].url_imagem : null,
+            tipo: 'produto',
+            created_at: null
+          });
+        } catch (imgError) {
+          items.push({
+            id: produto.codigo_produto,
+            codigo_produto: produto.codigo_produto,
+            produto: produto.titulo,
+            titulo: produto.titulo,
+            marca: produto.marca,
+            valor_venda: produto.valor_venda,
+            imagem: null,
+            tipo: 'produto',
+            created_at: null
+          });
+        }
+      }
+    } catch (prodError) {
+      console.warn('Erro ao buscar produtos:', prodError.message);
+    }
+    
+    // Buscar últimos serviços
+    try {
+      const servicosResult = await pool.query(`
+        SELECT 
+          s.id_servico,
+          s.titulo_servico as titulo,
+          s.tipo_servico,
+          s.servico,
+          COALESCE(s.valor_servico, 0) AS valor_venda,
+          s.created_at,
+          s.ativo
+        FROM servicos s
+        WHERE (s.ativo = TRUE OR s.ativo IS NULL)
+        ORDER BY s.created_at DESC, s.id_servico DESC
+        LIMIT 4
+      `);
+      
+      // Para cada serviço, buscar a primeira imagem
+      for (const servico of servicosResult.rows) {
+        try {
+          const imgResult = await pool.query(
+            `SELECT url_imagem FROM produto_imagens 
+             WHERE codigo_produto = $1 AND ativo = TRUE 
+             ORDER BY ordem ASC, id_imagem ASC 
+             LIMIT 1`,
+            [servico.id_servico]
+          );
+          
+          items.push({
+            id: servico.id_servico,
+            codigo_produto: servico.id_servico,
+            produto: servico.titulo,
+            titulo: servico.titulo,
+            marca: servico.tipo_servico,
+            valor_venda: servico.valor_venda,
+            imagem: imgResult.rows.length > 0 ? imgResult.rows[0].url_imagem : null,
+            tipo: 'servico',
+            created_at: servico.created_at
+          });
+        } catch (imgError) {
+          items.push({
+            id: servico.id_servico,
+            codigo_produto: servico.id_servico,
+            produto: servico.titulo,
+            titulo: servico.titulo,
+            marca: servico.tipo_servico,
+            valor_venda: servico.valor_venda,
+            imagem: null,
+            tipo: 'servico',
+            created_at: servico.created_at
+          });
+        }
+      }
+    } catch (servError) {
+      console.warn('Erro ao buscar serviços:', servError.message);
+    }
+    
+    // Ordenar por data de criação (mais recente primeiro) e pegar os 8 primeiros
+    items.sort((a, b) => {
+      if (a.created_at && b.created_at) {
+        return new Date(b.created_at) - new Date(a.created_at);
+      }
+      if (a.created_at) return -1;
+      if (b.created_at) return 1;
+      // Se não tiver data, ordenar por ID
+      return (b.id || 0) - (a.id || 0);
+    });
+    
+    res.json(items.slice(0, 8));
+  } catch (err) {
+    console.error('Erro ao buscar últimos produtos/serviços:', err);
+    res.status(500).json({ error: 'Erro ao buscar últimos produtos/serviços.' });
   }
 });
 
@@ -1000,6 +1526,74 @@ app.get('/api/compras', async (req, res) => {
   }
 });
 
+// Listar compras de um cliente específico (vendas realizadas para o cliente)
+app.get('/api/compras/:usuarioId', verificarToken, async (req, res) => {
+  try {
+    const { usuarioId } = req.params;
+    const tokenUsuarioId = req.userId;
+    
+    // Verificar se o usuário está buscando suas próprias compras
+    if (parseInt(usuarioId) !== tokenUsuarioId) {
+      return res.status(403).json({ error: 'Você só pode visualizar suas próprias compras.' });
+    }
+    
+    // Buscar vendas (pedido_vendas) relacionadas ao cliente
+    // Nota: Se houver uma tabela de clientes vinculada, ajustar a query
+    const result = await pool.query(`
+      SELECT 
+        pv.id_pedido,
+        pv.codigo_produto,
+        pv.quantidade,
+        pv.valor_unitario,
+        pv.valor_total,
+        pv.data_venda,
+        p.produto,
+        p.marca,
+        (SELECT url_imagem FROM produto_imagens 
+         WHERE codigo_produto = p.codigo_produto AND ativo = TRUE 
+         ORDER BY ordem ASC, id_imagem ASC LIMIT 1) as imagem
+      FROM pedido_vendas pv
+      JOIN produto p ON pv.codigo_produto = p.codigo_produto
+      WHERE pv.id_cliente = $1 OR pv.id_cliente IS NULL
+      ORDER BY pv.data_venda DESC
+    `, [usuarioId]);
+    
+    // Agrupar por pedido
+    const comprasAgrupadas = {};
+    result.rows.forEach(row => {
+      const pedidoId = row.id_pedido;
+      if (!comprasAgrupadas[pedidoId]) {
+        comprasAgrupadas[pedidoId] = {
+          id_pedido: pedidoId,
+          data_venda: row.data_venda,
+          valor_total: 0,
+          produtos: []
+        };
+      }
+      
+      comprasAgrupadas[pedidoId].produtos.push({
+        codigo_produto: row.codigo_produto,
+        produto: row.produto,
+        marca: row.marca,
+        quantidade: row.quantidade,
+        valor_unitario: row.valor_unitario,
+        valor_total: row.valor_total,
+        imagem: row.imagem
+      });
+      
+      comprasAgrupadas[pedidoId].valor_total += parseFloat(row.valor_total || 0);
+    });
+    
+    // Converter para array
+    const compras = Object.values(comprasAgrupadas);
+    
+    res.json(compras);
+  } catch (err) {
+    console.error('Erro ao listar compras do cliente:', err);
+    res.status(500).json({ error: 'Erro ao listar compras.' });
+  }
+});
+
 // ============================================
 // ROTAS DE VENDAS
 // ============================================
@@ -1163,45 +1757,6 @@ app.get('/api/usuarios', async (req, res) => {
 // ROTAS DE IMAGENS GERAIS
 // ============================================
 
-// Buscar imagem por nome
-app.get('/api/imagens/:nome', async (req, res) => {
-  try {
-    const { nome } = req.params;
-    
-    const result = await pool.query(
-      'SELECT url_imagem, tipo_arquivo, descricao FROM imagens_geral WHERE nome_imagem = $1 AND ativo = TRUE',
-      [nome]
-    );
-    
-    if (result.rows.length === 0) {
-      // Se não encontrou na tabela, usar fallback para ampulheta
-      if (nome && nome.toLowerCase() === 'ampulheta') {
-        const fallbackAmpulheta = process.env.AMPULHETA_URL || 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/ampulheta.gif';
-        return res.json({ url_imagem: fallbackAmpulheta, tipo_arquivo: 'gif', descricao: 'fallback: ampulheta pública' });
-      }
-      return res.status(404).json({ error: 'Imagem não encontrada.' });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (err) {
-    // Se a tabela não existe (código 42P01) ou outro erro, usar fallback para ampulheta
-    if (err.code === '42P01' || (err.message && err.message.includes('does not exist'))) {
-      const { nome } = req.params;
-      const fallbackAmpulheta = process.env.AMPULHETA_URL || 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/ampulheta.gif';
-      if (nome && nome.toLowerCase() === 'ampulheta') {
-        // Não logar erro quando a tabela não existe e estamos usando fallback
-        return res.json({ url_imagem: fallbackAmpulheta, tipo_arquivo: 'gif', descricao: 'fallback: ampulheta pública' });
-      }
-      // Para outras imagens quando a tabela não existe, retornar 404
-      return res.status(404).json({ error: 'Tabela de imagens não configurada. Imagem não encontrada.' });
-    }
-
-    // Log detalhado apenas para outros erros
-    console.error('Erro ao buscar imagem:', err);
-    res.status(500).json({ error: 'Erro ao buscar imagem: ' + (err.message || String(err)) });
-  }
-});
-
 // Listar todas as imagens gerais
 app.get('/api/imagens', async (req, res) => {
   try {
@@ -1218,6 +1773,176 @@ app.get('/api/imagens', async (req, res) => {
     res.status(500).json({ error: 'Erro ao listar imagens.' });
   }
 });
+
+// Buscar imagens dos serviços para a tela de anúncio
+// IMPORTANTE: Esta rota deve vir ANTES de /api/imagens/:nome para não ser capturada pelo parâmetro dinâmico
+app.get('/api/imagens/servicos', async (req, res) => {
+  try {
+    console.log('🔍 Rota /api/imagens/servicos chamada');
+    
+    // URLs exatas fornecidas pelo usuário (usar como padrão)
+    const imagensPadrao = {
+      'assentamento': 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/servico-1-1764532062863-2-porcelanato-3.PNG',
+      'pintura-paredes': 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/Pintuda%20de%20Paredes.PNG',
+      'pintura-portoes': 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/Pintuda%20de%20Portoes.PNG',
+      'acabamentos': 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/Instalacao%20de%20Sanca.PNG'
+    };
+    
+    // URLs decodificadas para busca no banco
+    const urlsParaBuscar = {
+      'assentamento': ['servico-1-1764532062863-2-porcelanato-3.PNG', 'porcelanato-3'],
+      'pintura-paredes': ['Pintuda de Paredes.PNG', 'Pintuda%20de%20Paredes.PNG', 'Paredes.PNG'],
+      'pintura-portoes': ['Pintuda de Portoes.PNG', 'Pintuda%20de%20Portoes.PNG', 'Portoes.PNG'],
+      'acabamentos': ['Instalacao de Sanca.PNG', 'Instalacao%20de%20Sanca.PNG', 'Sanca.PNG']
+    };
+    
+    const imagensServicos = { ...imagensPadrao };
+    
+    // Tentar buscar do banco de dados (tabela imagens_geral)
+    try {
+      console.log('🔍 Buscando imagens dos serviços no banco de dados...');
+      const result = await pool.query(
+        `SELECT url_imagem, nome_imagem FROM imagens_geral WHERE ativo = TRUE ORDER BY nome_imagem`
+      );
+      
+      console.log(`✅ Encontradas ${result.rows.length} imagens no banco`);
+      
+      // Log de todas as imagens encontradas para debug
+      if (result.rows.length > 0) {
+        console.log('📋 Imagens encontradas:');
+        result.rows.forEach((row, index) => {
+          console.log(`  ${index + 1}. nome: "${row.nome_imagem}", url: ${row.url_imagem?.substring(0, 80)}...`);
+        });
+      }
+      
+      // Buscar por URLs exatas fornecidas pelo usuário
+      for (const row of result.rows) {
+        const urlOriginal = row.url_imagem || '';
+        const urlLower = urlOriginal.toLowerCase();
+        const urlDecoded = decodeURIComponent(urlOriginal);
+        const urlDecodedLower = urlDecoded.toLowerCase();
+        
+        // Assentamento - buscar por padrões específicos
+        for (const padrao of urlsParaBuscar.assentamento) {
+          const padraoLower = padrao.toLowerCase();
+          if (urlLower.includes(padraoLower) || urlDecodedLower.includes(padraoLower) || 
+              urlOriginal.includes(padrao) || urlDecoded.includes(padrao)) {
+            imagensServicos.assentamento = row.url_imagem;
+            console.log('✅ Imagem de Assentamento encontrada no banco:', row.nome_imagem, '| URL:', row.url_imagem);
+            break;
+          }
+        }
+        
+        // Pintura de Paredes - buscar por padrões específicos
+        for (const padrao of urlsParaBuscar['pintura-paredes']) {
+          const padraoLower = padrao.toLowerCase();
+          if (urlLower.includes(padraoLower) || urlDecodedLower.includes(padraoLower) ||
+              urlOriginal.includes(padrao) || urlDecoded.includes(padrao)) {
+            imagensServicos['pintura-paredes'] = row.url_imagem;
+            console.log('✅ Imagem de Pintura de Paredes encontrada no banco:', row.nome_imagem, '| URL:', row.url_imagem);
+            break;
+          }
+        }
+        
+        // Pintura de Portões - buscar por padrões específicos
+        for (const padrao of urlsParaBuscar['pintura-portoes']) {
+          const padraoLower = padrao.toLowerCase();
+          if (urlLower.includes(padraoLower) || urlDecodedLower.includes(padraoLower) ||
+              urlOriginal.includes(padrao) || urlDecoded.includes(padrao)) {
+            imagensServicos['pintura-portoes'] = row.url_imagem;
+            console.log('✅ Imagem de Pintura de Portões encontrada no banco:', row.nome_imagem, '| URL:', row.url_imagem);
+            break;
+          }
+        }
+        
+        // Acabamentos - buscar por padrões específicos
+        for (const padrao of urlsParaBuscar.acabamentos) {
+          const padraoLower = padrao.toLowerCase();
+          if (urlLower.includes(padraoLower) || urlDecodedLower.includes(padraoLower) ||
+              urlOriginal.includes(padrao) || urlDecoded.includes(padrao)) {
+            imagensServicos.acabamentos = row.url_imagem;
+            console.log('✅ Imagem de Acabamentos encontrada no banco:', row.nome_imagem, '| URL:', row.url_imagem);
+            break;
+          }
+        }
+      }
+      
+      // Se não encontrou por URL exata, buscar por padrões nos nomes ou URLs
+      for (const row of result.rows) {
+        const nomeLower = (row.nome_imagem || '').toLowerCase();
+        const urlLower = (row.url_imagem || '').toLowerCase();
+        const urlDecoded = decodeURIComponent(urlLower);
+        
+        // Assentamento - buscar por "porcelanato" na URL ou nome (se ainda não encontrou)
+        if (!imagensServicos.assentamento || imagensServicos.assentamento === imagensPadrao.assentamento) {
+          if (urlLower.includes('porcelanato') || urlDecoded.includes('porcelanato') || 
+              nomeLower.includes('porcelanato') || nomeLower.includes('assentamento') ||
+              nomeLower.includes('piso') || nomeLower.includes('revestimento')) {
+            imagensServicos.assentamento = row.url_imagem;
+            console.log('✅ Imagem de Assentamento encontrada (padrão):', row.nome_imagem);
+          }
+        }
+        
+        // Pintura de Paredes - buscar por "Paredes" na URL ou nome (se ainda não encontrou)
+        if (!imagensServicos['pintura-paredes'] || imagensServicos['pintura-paredes'] === imagensPadrao['pintura-paredes']) {
+          if (urlLower.includes('paredes') || urlDecoded.includes('Paredes') || 
+              nomeLower.includes('paredes') || nomeLower.includes('pintura paredes') ||
+              nomeLower.includes('pintuda paredes')) {
+            imagensServicos['pintura-paredes'] = row.url_imagem;
+            console.log('✅ Imagem de Pintura de Paredes encontrada (padrão):', row.nome_imagem);
+          }
+        }
+        
+        // Pintura de Portões - buscar por "Portoes" na URL ou nome (se ainda não encontrou)
+        if (!imagensServicos['pintura-portoes'] || imagensServicos['pintura-portoes'] === imagensPadrao['pintura-portoes']) {
+          if (urlLower.includes('portoes') || urlLower.includes('portão') || 
+              urlDecoded.includes('Portoes') || urlDecoded.includes('Portão') ||
+              nomeLower.includes('portoes') || nomeLower.includes('portão') ||
+              nomeLower.includes('pintura portoes') || nomeLower.includes('pintuda portoes')) {
+            imagensServicos['pintura-portoes'] = row.url_imagem;
+            console.log('✅ Imagem de Pintura de Portões encontrada (padrão):', row.nome_imagem);
+          }
+        }
+        
+        // Acabamentos - buscar por "Sanca" na URL ou nome (se ainda não encontrou)
+        if (!imagensServicos.acabamentos || imagensServicos.acabamentos === imagensPadrao.acabamentos) {
+          if (urlLower.includes('sanca') || urlDecoded.includes('Sanca') || 
+              nomeLower.includes('sanca') || nomeLower.includes('acabamento') ||
+              nomeLower.includes('instalacao sanca') || nomeLower.includes('instalação sanca')) {
+            imagensServicos.acabamentos = row.url_imagem;
+            console.log('✅ Imagem de Acabamentos encontrada (padrão):', row.nome_imagem);
+          }
+        }
+      }
+      
+      console.log('📤 Retornando imagens:', Object.keys(imagensServicos));
+      
+    } catch (dbErr) {
+      // Se a tabela não existe, usar URLs padrão
+      if (dbErr.code === '42P01' || dbErr.message?.includes('does not exist')) {
+        console.log('⚠️ Tabela imagens_geral não encontrada, usando URLs padrão');
+      } else {
+        console.error('❌ Erro ao buscar imagens do banco:', dbErr);
+        console.warn('⚠️ Usando URLs padrão devido ao erro');
+      }
+    }
+    
+    console.log('📤 Retornando imagens finais:', imagensServicos);
+    res.json(imagensServicos);
+  } catch (err) {
+    console.error('❌ Erro geral ao buscar imagens dos serviços:', err);
+    // Retornar URLs padrão mesmo em caso de erro
+    const imagensErro = {
+      'assentamento': 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/servico-1-1764532062863-2-porcelanato-3.PNG',
+      'pintura-paredes': 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/Pintuda%20de%20Paredes.PNG',
+      'pintura-portoes': 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/Pintuda%20de%20Portoes.PNG',
+      'acabamentos': 'https://afszgngtfbdodwznanuo.supabase.co/storage/v1/object/public/uploads/Instalacao%20de%20Sanca.PNG'
+    };
+    console.log('📤 Retornando URLs padrão devido ao erro');
+    res.json(imagensErro);
+  }
+});
+
 
 // ============================================
 // ROTAS DE IMAGENS DE PRODUTOS
@@ -1411,6 +2136,9 @@ app.use((req, res, next) => {
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`📡 Rotas de API disponíveis:`);
+  console.log(`   GET  /api/imagens/servicos`);
+  console.log(`   GET  /api/imagens`);
+  console.log(`   GET  /api/imagens/:nome`);
   console.log(`   GET  /api/produtos`);
   console.log(`   GET  /api/produtos/:codigo`);
   console.log(`   POST /api/produtos`);

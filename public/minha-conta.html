@@ -23,7 +23,14 @@
 
         <main>
             <form id="minhaContaForm">
-                <h2>👤 Minha Conta</h2>
+                <div class="header-conta">
+                    <div class="foto-perfil-container">
+                        <img id="fotoPerfilPreview" src="" alt="Foto de perfil" class="foto-perfil-img" />
+                        <button type="button" class="btn-alterar-foto" id="btnAlterarFoto">Alterar Foto</button>
+                        <input type="file" id="fotoPerfil" name="fotoPerfil" accept="image/*" style="display: none;" />
+                    </div>
+                    <h2>Minha Conta</h2>
+                </div>
                 <p>Veja e atualize seus dados cadastrados.</p>
 
                 <div class="form-group">
@@ -51,10 +58,6 @@
                     <input type="password" id="confirmarSenha" name="confirmarSenha" required readonly />
                 </div>
 
-                <div class="form-group">
-                    <label for="fotoPerfil">Foto de Perfil</label>
-                    <input type="file" id="fotoPerfil" name="fotoPerfil" accept="image/*" disabled />
-                </div>
 
                 <button type="button" class="btn-primary" onclick="enableEdit()">Atualizar Cadastro</button>
                 <button type="button" class="btn-secondary" onclick="location.href='index.html'">Home</button>

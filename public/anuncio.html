@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anúncio de Serviço - LOS PATRONES DA REFORMA</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="anuncio.css">
+</head>
+<body>
+    <header>
+        <div class="imagem-logo">
+            <img src="/imagensSite/logo.png" alt="Logo LOS PATRONES DA REFORMA" class="logo">
+        </div>
+        
+        <div class="social-icons">
+            <a href="#">📞 WhatsApp</a>
+            <a href="#">📷 Instagram</a>
+            <a href="#">📘 Facebook</a>
+            <a href="#">🐦 Twitter</a>
+            <a href="#">✉️ Gmail</a>
+        </div>
+        <div class="auth-buttons" id="authButtons">
+            <!-- Botões serão gerados via JavaScript index.js-->
+        </div>
+    </header>
+
+    <div class="menu-container">
+        <nav>
+            <ul>
+                <li><a href="admin.html">Dashboard</a></li>
+                <li><a href="index.html">Início</a></li>
+                <li><a href="produtos.html">Anúncios</a></li>
+                <li><a href="#">Sobre Nós</a></li>
+                <li><a href="#">Contato</a></li>
+                <li><a href="#">Trabalhe Conosco</a></li>
+                <li class="search-box">
+                    <span>🔍</span>
+                    <input type="text" placeholder="Pesquisar...">
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <main class="anuncio-main">
+        <!-- TELA 1: Seleção do Tipo de Serviço -->
+        <section class="anuncio-screen" id="screen1">
+            <h2 class="anuncio-title">ESCOLHA QUAL MODALIDADE DE SERVIÇO IRÁ ADICIONAR</h2>
+            <div class="servicos-grid" id="servicosGrid">
+                <div class="servico-card" data-tipo="assentamento">
+                    <div class="servico-image">
+                        <img src="" alt="Assentamento de Pisos, Revestimentos e Porcelanatos" id="img-assentamento">
+                    </div>
+                    <h3>Assentamento de Pisos, Revestimentos e Porcelanatos</h3>
+                </div>
+                
+                <div class="servico-card" data-tipo="pintura-paredes">
+                    <div class="servico-image">
+                        <img src="" alt="Pintura de Paredes" id="img-pintura-paredes">
+                    </div>
+                    <h3>Pintura de Paredes</h3>
+                </div>
+                
+                <div class="servico-card" data-tipo="pintura-portoes">
+                    <div class="servico-image">
+                        <img src="" alt="Pintura de Portões" id="img-pintura-portoes">
+                    </div>
+                    <h3>Pintura de Portões</h3>
+                </div>
+                
+                <div class="servico-card" data-tipo="acabamentos">
+                    <div class="servico-image">
+                        <img src="" alt="Acabamentos Específicos" id="img-acabamentos">
+                    </div>
+                    <h3>Acabamentos Específicos</h3>
+                </div>
+            </div>
+            <div class="anuncio-buttons">
+                <button class="btn-voltar" onclick="window.location.href='index.html'">
+                    <span>←</span> VOLTAR
+                </button>
+            </div>
+        </section>
+
+        <!-- TELA 2: Assentamento de Pisos -->
+        <section class="anuncio-screen" id="screen-assentamento" style="display: none;">
+            <h2 class="anuncio-title">Assentamento de Pisos, Revestimentos e Porcelanatos</h2>
+            <div class="anuncio-form-container">
+                <h3 class="form-section-title">ESCOLHA UMA DAS OPÇÕES</h3>
+                <div class="opcoes-grid">
+                    <button class="opcao-btn" data-opcao="piso-ceramico">piso cerâmico</button>
+                    <button class="opcao-btn" data-opcao="revestimento-porcelanato">revestimento de porcelanato</button>
+                    <button class="opcao-btn" data-opcao="revestimento-ceramico">revestimento cerâmico</button>
+                    <button class="opcao-btn" data-opcao="pastilhas-mosaicos">pastilhas ou mosaicos</button>
+                    <button class="opcao-btn" data-opcao="porcelanato">porcelanato</button>
+                </div>
+                <div class="form-group">
+                    <label for="metro-quadrado-assentamento">Valor do m² (R$)</label>
+                    <input type="text" id="metro-quadrado-assentamento" placeholder="Ex: 30,00" />
+                </div>
+                <div class="form-group">
+                    <label for="titulo-assentamento">Título do anúncio:</label>
+                    <input type="text" id="titulo-assentamento" placeholder="Digite o título do anúncio" />
+                </div>
+                <div class="form-group">
+                    <label for="descricao-assentamento">Descrição do Serviço:</label>
+                    <textarea id="descricao-assentamento" rows="4" placeholder="Descreva o serviço oferecido"></textarea>
+                </div>
+                <div class="anuncio-buttons">
+                    <button class="btn-proximo" onclick="avancarTela('assentamento')">
+                        PRÓXIMO <span>→</span>
+                    </button>
+                    <button class="btn-voltar" onclick="voltarTela('assentamento')">
+                        <span>←</span> VOLTAR
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 3: Pintura de Paredes -->
+        <section class="anuncio-screen" id="screen-pintura-paredes" style="display: none;">
+            <h2 class="anuncio-title">Pintura de Paredes</h2>
+            <div class="anuncio-form-container">
+                <h3 class="form-section-title">ESCOLHA UMA DAS OPÇÕES</h3>
+                <div class="opcoes-grid">
+                    <button class="opcao-btn" data-opcao="parede-interna">parede interna</button>
+                    <button class="opcao-btn" data-opcao="parede-externa">parede externa</button>
+                </div>
+                <div class="form-group">
+                    <label for="metro-quadrado-paredes">Valor do m² (R$)</label>
+                    <input type="text" id="metro-quadrado-paredes" placeholder="Ex: 20,00" />
+                </div>
+                <div class="form-group">
+                    <label for="titulo-paredes">Título do anúncio:</label>
+                    <input type="text" id="titulo-paredes" placeholder="Digite o título do anúncio" />
+                </div>
+                <div class="form-group">
+                    <label for="descricao-paredes">Descrição do Serviço:</label>
+                    <textarea id="descricao-paredes" rows="4" placeholder="Descreva o serviço oferecido"></textarea>
+                </div>
+                <div class="anuncio-buttons">
+                    <button class="btn-proximo" onclick="avancarTela('pintura-paredes')">
+                        PRÓXIMO <span>→</span>
+                    </button>
+                    <button class="btn-voltar" onclick="voltarTela('pintura-paredes')">
+                        <span>←</span> VOLTAR
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 4: Pintura de Portões -->
+        <section class="anuncio-screen" id="screen-pintura-portoes" style="display: none;">
+            <h2 class="anuncio-title">Pintura de Portões</h2>
+            <div class="anuncio-form-container">
+                <h3 class="form-section-title">ESCOLHA UMA DAS OPÇÕES</h3>
+                <div class="opcoes-grid">
+                    <button class="opcao-btn" data-opcao="portao-ferro-um-lado">portão de ferro (um lado)</button>
+                    <button class="opcao-btn" data-opcao="portao-ferro-dois-lados">portão de ferro (dois lados)</button>
+                    <button class="opcao-btn" data-opcao="madeira">madeira (portas, batentes, rodapés)</button>
+                </div>
+                <div class="form-group">
+                    <label for="metro-quadrado-portoes">Valor do m² (R$)</label>
+                    <input type="text" id="metro-quadrado-portoes" placeholder="Ex: 40,00" />
+                </div>
+                <div class="form-group">
+                    <label for="titulo-portoes">Título do anúncio:</label>
+                    <input type="text" id="titulo-portoes" placeholder="Digite o título do anúncio" />
+                </div>
+                <div class="form-group">
+                    <label for="descricao-portoes">Descrição do Serviço:</label>
+                    <textarea id="descricao-portoes" rows="4" placeholder="Descreva o serviço oferecido"></textarea>
+                </div>
+                <div class="anuncio-buttons">
+                    <button class="btn-proximo" onclick="avancarTela('pintura-portoes')">
+                        PRÓXIMO <span>→</span>
+                    </button>
+                    <button class="btn-voltar" onclick="voltarTela('pintura-portoes')">
+                        <span>←</span> VOLTAR
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 5: Acabamentos Específicos -->
+        <section class="anuncio-screen" id="screen-acabamentos" style="display: none;">
+            <h2 class="anuncio-title">Acabamentos Específicos</h2>
+            <div class="anuncio-form-container">
+                <h3 class="form-section-title">ESCOLHA UMA DAS OPÇÕES</h3>
+                <div class="opcoes-grid">
+                    <button class="opcao-btn" data-opcao="papel-parede">papel de parede</button>
+                    <button class="opcao-btn" data-opcao="moldura-gesso">moldura de gesso (aplicação na parede)</button>
+                    <button class="opcao-btn" data-opcao="rodape">rodapé de cerâmica/porcelanato/madeira</button>
+                </div>
+                <div class="form-group">
+                    <label for="metro-quadrado-acabamentos">Valor do m² (R$)</label>
+                    <input type="text" id="metro-quadrado-acabamentos" placeholder="Ex: 40,00" />
+                </div>
+                <div class="form-group">
+                    <label for="titulo-acabamentos">Título do anúncio:</label>
+                    <input type="text" id="titulo-acabamentos" placeholder="Digite o título do anúncio" />
+                </div>
+                <div class="form-group">
+                    <label for="descricao-acabamentos">Descrição do Serviço:</label>
+                    <textarea id="descricao-acabamentos" rows="4" placeholder="Descreva o serviço oferecido"></textarea>
+                </div>
+                <div class="anuncio-buttons">
+                    <button class="btn-proximo" onclick="avancarTela('acabamentos')">
+                        PRÓXIMO <span>→</span>
+                    </button>
+                    <button class="btn-voltar" onclick="voltarTela('acabamentos')">
+                        <span>←</span> VOLTAR
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 6: Upload de Fotos -->
+        <section class="anuncio-screen" id="screen-fotos" style="display: none;">
+            <h2 class="anuncio-title">Adicionando as Fotos</h2>
+            <div class="anuncio-form-container">
+                <h3 class="form-section-title">ADICIONE ATÉ 8 FOTOS POR TIPO DE SERVIÇOS</h3>
+                <div class="fotos-grid" id="fotosGrid">
+                    <!-- 8 slots de upload serão criados via JavaScript -->
+                </div>
+                <div class="anuncio-buttons">
+                    <button class="btn-salvar" onclick="salvarAnuncio()">
+                        SALVAR
+                    </button>
+                    <button class="btn-voltar" onclick="voltarTela('fotos')">
+                        <span>←</span> VOLTAR
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Comercio e-commerce produtos "LOS PATRONES DA REFORMA" ltda.</p>
+        <p>Endereço: Av. Brasil 1005, CEP 07352-090 centro, São Paulo, SP Brasil</p>
+    </footer>
+
+    <script src="js/index.js"></script>
+    <script src="js/anuncio.js"></script>
+</body>
+</html>
+

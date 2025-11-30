@@ -141,7 +141,8 @@ main {
 
 /* Botão de login */
 .btn-login {
-    background-color: #d3d3d3; /* Cinza claro como index.html */
+    /* Efeito 3D com gradiente */
+    background: linear-gradient(145deg, #e0e0e0, #b8b8b8); /* Gradiente 3D cinza claro */
     color: #001f3f; /* Texto azul-marinho escuro */
     padding: 12px 24px;
     border: none;
@@ -150,20 +151,44 @@ main {
     font-size: 16px;
     font-weight: 700;
     width: 100%;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
-    box-shadow: 0 6px 12px rgba(2, 30, 80, 0.35);
     margin-bottom: 12px;
+    /* Múltiplas sombras para efeito 3D */
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    position: relative;
 }
 
 /* Hover no botão */
 .btn-login:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 18px rgba(2, 30, 80, 0.45);
+    /* Efeito 3D ao passar o mouse */
+    transform: translateY(-3px);
+    background: linear-gradient(145deg, #e8e8e8, #c0c0c0);
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.25),
+        0 3px 6px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.btn-login:active {
+    /* Efeito 3D ao clicar */
+    transform: translateY(1px);
+    background: linear-gradient(145deg, #b8b8b8, #d0d0d0);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 1px 2px rgba(0, 0, 0, 0.1),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* Botão Cadastrar */
 .btn-cadastrar {
-    background-color: #d3d3d3; /* Cinza claro como index.html */
+    /* Efeito 3D com gradiente */
+    background: linear-gradient(145deg, #e0e0e0, #b8b8b8); /* Gradiente 3D cinza claro */
     color: #001f3f; /* Texto azul-marinho escuro */
     padding: 12px 24px;
     border: none;
@@ -172,14 +197,37 @@ main {
     font-size: 16px;
     font-weight: 700;
     width: 100%;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
-    box-shadow: 0 6px 12px rgba(2, 30, 80, 0.35);
+    /* Múltiplas sombras para efeito 3D */
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    position: relative;
 }
 
 /* Hover no botão Cadastrar */
 .btn-cadastrar:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 18px rgba(2, 30, 80, 0.45);
+    /* Efeito 3D ao passar o mouse */
+    transform: translateY(-3px);
+    background: linear-gradient(145deg, #e8e8e8, #c0c0c0);
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.25),
+        0 3px 6px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.btn-cadastrar:active {
+    /* Efeito 3D ao clicar */
+    transform: translateY(1px);
+    background: linear-gradient(145deg, #b8b8b8, #d0d0d0);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 1px 2px rgba(0, 0, 0, 0.1),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* Estilo do ícone Home - igual à imagem (azul-roxo) */

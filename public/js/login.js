@@ -4,18 +4,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const senhaInput = document.getElementById('senha');
   
   // Garantir que os campos estejam vazios
-  if (emailInput) emailInput.value = '';
-  if (senhaInput) senhaInput.value = '';
-  
-  // Desabilitar autocomplete do navegador
   if (emailInput) {
+    emailInput.value = '';
     emailInput.setAttribute('autocomplete', 'off');
     emailInput.setAttribute('autocapitalize', 'off');
     emailInput.setAttribute('spellcheck', 'false');
   }
   if (senhaInput) {
+    senhaInput.value = '';
     senhaInput.setAttribute('autocomplete', 'new-password');
   }
+  
+  // Limpar qualquer valor que possa ter sido preenchido pelo navegador
+  setTimeout(() => {
+    if (emailInput && emailInput.value) emailInput.value = '';
+    if (senhaInput && senhaInput.value) senhaInput.value = '';
+  }, 100);
 });
 
 // Verificar se há token expirado no localStorage e limpar
