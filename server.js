@@ -142,7 +142,7 @@ const upload = multer({
 
 // === ROTA: CADASTRO ===
 app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
-  const { nome, cpf, email, senha } = req.body;
+  const { nome, cpf, email, senha, perfil } = req.body;
   let fotoPerfilUrl = null;
 
   try {
@@ -216,6 +216,12 @@ app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
       return res.status(409).json({ error: 'CPF ou e-mail já cadastrado.' });
     }
 
+    // Validar perfil (2 = Cliente, 3 = Profissional, padrão = 2)
+    const perfilId = perfil ? parseInt(perfil) : 2;
+    if (perfilId !== 2 && perfilId !== 3) {
+      return res.status(400).json({ error: 'Perfil inválido. Use Cliente (2) ou Profissional (3).' });
+    }
+    
     // Criar usuário (perfil padrão = 2 = Cliente, status = 'Ativo')
     const hashSenha = await bcrypt.hash(senha, 10);
     
@@ -226,7 +232,7 @@ app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
     try {
       const result = await pool.query(
         'INSERT INTO cadastro_usuario (nome, perfil, cpf, email, senha, "fotoPerfil", status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-        [nome, 2, cpf, email, hashSenha, fotoPerfilUrl, 'Ativo']
+        [nome, perfilId, cpf, email, hashSenha, fotoPerfilUrl, 'Ativo']
       );
       userId = result.rows[0].id;
     } catch (insertError) {
@@ -235,7 +241,7 @@ app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
         console.log('⚠️ Tentando com coluna em minúsculo...');
         const result = await pool.query(
           'INSERT INTO cadastro_usuario (nome, perfil, cpf, email, senha, fotoperfil, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-          [nome, 2, cpf, email, hashSenha, fotoPerfilUrl, 'Ativo']
+          [nome, perfilId, cpf, email, hashSenha, fotoPerfilUrl, 'Ativo']
         );
         userId = result.rows[0].id;
       } else {
@@ -815,6 +821,74 @@ app.get('/api/usuarios/:id/historico', verificarToken, async (req, res) => {
   } catch (err) {
     console.error('Erro ao buscar histórico:', err);
     res.status(500).json({ error: 'Erro ao buscar histórico.' });
+  }
+});
+
+// ============================================
+// ROTAS DE ENDEREÇOS
+// ============================================
+
+// Cadastrar endereço
+app.post('/api/enderecos', verificarToken, async (req, res) => {
+  try {
+    const { cep, logradouro, numero, complemento, bairro, cidade, estado, pais } = req.body;
+    const usuarioId = req.userId;
+    
+    // Validações
+    if (!cep || cep.length !== 8) {
+      return res.status(400).json({ error: 'CEP inválido.' });
+    }
+    
+    if (!numero) {
+      return res.status(400).json({ error: 'Número é obrigatório.' });
+    }
+    
+    // Inserir endereço (tipo_endereco padrão como 'Cliente')
+    const result = await pool.query(
+      `INSERT INTO endereco (cep, logradouro, numero, complemento, bairro, cidade, estado, pais, tipo_endereco, usuario_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [cep, logradouro || null, numero, complemento || null, bairro || null, cidade || null, estado || null, pais || 'Brasil', 'Cliente', usuarioId]
+    );
+    
+    const enderecoId = result.rows[0].id;
+    
+    // Atualizar referência no cadastro_usuario (opcional)
+    await pool.query(
+      'UPDATE cadastro_usuario SET endereco_id = $1 WHERE id = $2',
+      [enderecoId, usuarioId]
+    ).catch(err => {
+      // Se a coluna não existir, não é crítico
+      console.warn('⚠️ Coluna endereco_id não existe ou erro ao atualizar:', err.message);
+    });
+    
+    // Registrar histórico
+    await registrarHistorico(usuarioId, `Endereço cadastrado: ${logradouro}, ${numero} - ${cidade}/${estado}`);
+    
+    res.status(201).json({
+      message: 'Endereço cadastrado com sucesso!',
+      endereco: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Erro ao cadastrar endereço:', err);
+    res.status(500).json({ error: 'Erro ao cadastrar endereço.' });
+  }
+});
+
+// Listar endereços do usuário logado
+app.get('/api/enderecos', verificarToken, async (req, res) => {
+  try {
+    const usuarioId = req.userId;
+    
+    const result = await pool.query(
+      'SELECT * FROM endereco WHERE usuario_id = $1 ORDER BY created_at DESC',
+      [usuarioId]
+    );
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro ao listar endereços:', err);
+    res.status(500).json({ error: 'Erro ao listar endereços.' });
   }
 });
 

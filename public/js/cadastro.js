@@ -1,6 +1,6 @@
 // Garantir que todos os campos iniciem vazios
 document.addEventListener('DOMContentLoaded', () => {
-  const campos = ['nome', 'cpf', 'email', 'senha', 'confirmarSenha'];
+  const campos = ['nome', 'cpf', 'email', 'perfil', 'senha', 'confirmarSenha'];
   campos.forEach(campoId => {
     const campo = document.getElementById(campoId);
     if (campo) {

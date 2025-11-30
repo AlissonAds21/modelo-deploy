@@ -124,61 +124,140 @@ label {
 input[type="text"],
 input[type="email"],
 input[type="password"],
-input[type="file"] {
+input[type="file"],
+select.form-control {
     width: 100%;
     padding: 10px;
     border: 2px solid #ddd; /* Borda mais espessa */
     border-radius: 5px;
     font-size: 16px;
     transition: border-color 0.3s ease;
+    background-color: #ffffff;
+}
+
+/* Campos readonly */
+input[readonly] {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
+/* Texto de ajuda (small) */
+.form-text {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #666;
+}
+
+.text-muted {
+    color: #666;
 }
 
 /* Efeito ao focar no campo */
 input[type="text"]:focus,
 input[type="email"]:focus,
 input[type="password"]:focus,
-input[type="file"]:focus {
+input[type="file"]:focus,
+select.form-control:focus {
     outline: none;
     border-color: #587bfa; /* Borda azul-roxo ao focar */
 }
 
-/* Botão primário (Cadastrar) - padronizado com index.html */
+/* Estilo específico para select */
+select.form-control {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23001f3f' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 35px;
+}
+
+/* Botão primário (Cadastrar) - Efeito 3D */
 .btn-primary {
-    background-color: #d3d3d3; /* Cinza claro como index.html */
+    /* Efeito 3D com gradiente */
+    background: linear-gradient(145deg, #e0e0e0, #b8b8b8); /* Gradiente 3D cinza claro */
     color: #001f3f; /* Texto azul-marinho escuro */
     padding: 12px 24px;
     border: none;
-    border-radius: 12px; /* Cantos mais arredondados */
+    border-radius: 12px;
     cursor: pointer;
     font-size: 16px;
     font-weight: 700;
     margin-right: 10px;
-    box-shadow: 0 6px 12px rgba(2, 30, 80, 0.35); /* Sombra azul marinho */
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    /* Múltiplas sombras para efeito 3D */
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    position: relative;
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 18px rgba(2, 30, 80, 0.45);
+    /* Efeito 3D ao passar o mouse - botão "elevado" */
+    transform: translateY(-3px);
+    background: linear-gradient(145deg, #e8e8e8, #c0c0c0);
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.25),
+        0 3px 6px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
 }
 
-/* Botão secundário (Limpar) - padronizado com index.html */
+.btn-primary:active {
+    /* Efeito 3D ao clicar - botão "pressionado" */
+    transform: translateY(1px);
+    background: linear-gradient(145deg, #b8b8b8, #d0d0d0);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 1px 2px rgba(0, 0, 0, 0.1),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Botão secundário (Limpar) - Efeito 3D */
 .btn-secondary {
-    background-color: #d3d3d3; /* Cinza claro como index.html */
+    /* Efeito 3D com gradiente */
+    background: linear-gradient(145deg, #e0e0e0, #b8b8b8); /* Gradiente 3D cinza claro */
     color: #001f3f; /* Texto azul-marinho escuro */
     padding: 12px 24px;
     border: none;
-    border-radius: 12px; /* Cantos mais arredondados */
+    border-radius: 12px;
     cursor: pointer;
     font-size: 16px;
     font-weight: 700;
-    box-shadow: 0 6px 12px rgba(2, 30, 80, 0.35); /* Sombra azul marinho */
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    /* Múltiplas sombras para efeito 3D */
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    position: relative;
 }
 
 .btn-secondary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 18px rgba(2, 30, 80, 0.45);
+    /* Efeito 3D ao passar o mouse */
+    transform: translateY(-3px);
+    background: linear-gradient(145deg, #e8e8e8, #c0c0c0);
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.25),
+        0 3px 6px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary:active {
+    /* Efeito 3D ao clicar */
+    transform: translateY(1px);
+    background: linear-gradient(145deg, #b8b8b8, #d0d0d0);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 1px 2px rgba(0, 0, 0, 0.1),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* Estilos para o header da conta com foto */
@@ -251,6 +330,49 @@ input[type="file"]:focus {
     color: #00153d; /* Tom mais escuro no hover */
 }
 
+/* Wrapper para foto de perfil e link de endereço */
+.foto-perfil-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.foto-perfil-wrapper input[type="file"] {
+    flex: 1;
+    min-width: 200px;
+    max-width: 300px;
+}
+
+.btn-link {
+    color: #587bfa;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-link:hover {
+    color: #4568dc;
+}
+
+/* Botões do formulário de endereço */
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.form-buttons .btn-secondary {
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
 /* ===============================================
    RESPONSIVIDADE - CADASTRO
    =============================================== */
@@ -298,7 +420,8 @@ input[type="file"]:focus {
     input[type="text"],
     input[type="email"],
     input[type="password"],
-    input[type="file"] {
+    input[type="file"],
+    select.form-control {
         padding: 9px;
         font-size: 15px;
     }
@@ -371,9 +494,20 @@ input[type="file"]:focus {
     input[type="text"],
     input[type="email"],
     input[type="password"],
-    input[type="file"] {
+    input[type="file"],
+    select.form-control {
         padding: 8px;
         font-size: 14px;
+    }
+
+    .form-buttons {
+        flex-direction: column;
+    }
+
+    .form-buttons .btn-primary,
+    .form-buttons .btn-secondary {
+        width: 100%;
+        margin-bottom: 10px;
     }
 
     .btn-primary,
