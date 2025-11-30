@@ -5,12 +5,12 @@
     box-sizing: border-box;
 }
 
-/* Estilo do corpo com gradiente colorido */
+/* Estilo do corpo - padronizado com index.html */
 body {
     font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #4CAF50, #FF9800); /* Verde para laranja */
-    color: #fff; /* Texto branco */
-    min-height: 100vh; /* Ocupa toda a altura da tela */
+    background-color: #ffffff; /* Fundo branco como index.html */
+    color: #001f3f; /* Texto azul-marinho escuro */
+    min-height: 100vh;
 }
 
 /* Contêiner centralizado */
@@ -20,16 +20,16 @@ body {
     padding: 20px;
 }
 
-/* Cabeçalho com fundo translúcido */
+/* Cabeçalho - padronizado com index.html */
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: rgba(0,0,0,0.3); /* Preto com 30% de opacidade */
+    background-color: #d3d3d3; /* Cinza claro como index.html */
     padding: 20px;
-    border-bottom: 5px solid #4CAF50; /* Borda inferior verde */
     border-radius: 10px;
     margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Logo no cabeçalho */
@@ -41,10 +41,9 @@ header img {
 
 /* Título no cabeçalho */
 header h1 {
-    color: #FFF;
+    color: #001f3f; /* Azul-marinho escuro */
     font-size: 2.5em;
     font-weight: bold;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
 /* Centraliza o card de login verticalmente */
@@ -57,13 +56,13 @@ main {
 
 /* Card de login */
 .card {
-    background: rgba(255,255,255,0.9); /* Branco com leve transparência */
+    background: #ffffff; /* Branco sólido */
     border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    box-shadow: 0 6px 12px rgba(2, 30, 80, 0.35); /* Sombra azul marinho como index.html */
     padding: 30px;
     width: 350px;
     text-align: center;
-    transition: transform 0.3s ease; /* Animação suave ao passar o mouse */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* Efeito hover no card */
@@ -75,12 +74,12 @@ main {
 .avatar {
     width: 80px;
     height: 80px;
-    background-color: #4CAF50; /* Verde */
-    border-radius: 50%; /* Torna circular */
+    background-color: #587bfa; /* Azul-roxo como botão Home */
+    border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 0 auto 20px; /* Centraliza e adiciona margem inferior */
+    margin: 0 auto 20px;
     color: white;
     font-size: 40px;
 }
@@ -96,7 +95,7 @@ main {
     display: block;
     margin-bottom: 8px;
     font-weight: bold;
-    color: #4CAF50; /* Verde */
+    color: #001F5B; /* Azul-marinho como index.html */
 }
 
 /* Campo de entrada */
@@ -112,7 +111,7 @@ main {
 /* Efeito ao focar no campo */
 .input-group input:focus {
     outline: none;
-    border-color: #4CAF50; /* Borda verde ao focar */
+    border-color: #587bfa; /* Borda azul-roxo ao focar */
 }
 
 /* Grupo de checkbox e link "esqueci senha" */
@@ -130,51 +129,202 @@ main {
     align-items: center;
     gap: 5px;
     cursor: pointer;
-    color: #e53935; /* Vermelho do Material Design */
+    color: #001F5B; /* Azul-marinho como index.html */
 }
 
 /* Link "esqueci senha" */
 .checkbox-group a {
-    color: #FF9800; /* Laranja */
+    color: #001F5B; /* Azul-marinho */
     text-decoration: underline;
     cursor: pointer;
 }
 
 /* Botão de login */
 .btn-login {
-    background-color: #4CAF50;
-    color: white;
+    background-color: #d3d3d3; /* Cinza claro como index.html */
+    color: #001f3f; /* Texto azul-marinho escuro */
     padding: 12px 24px;
     border: none;
-    border-radius: 5px;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 16px;
+    font-weight: 700;
     width: 100%;
-    transition: background 0.3s;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    box-shadow: 0 6px 12px rgba(2, 30, 80, 0.35);
+    margin-bottom: 12px;
 }
 
 /* Hover no botão */
 .btn-login:hover {
-    background-color: #45a049; /* Verde mais escuro */
+    transform: translateY(-2px);
+    box-shadow: 0 10px 18px rgba(2, 30, 80, 0.45);
 }
 
-/* Estilo do ícone Home (repetido aqui para garantir consistência) */
+/* Botão Cadastrar */
+.btn-cadastrar {
+    background-color: #d3d3d3; /* Cinza claro como index.html */
+    color: #001f3f; /* Texto azul-marinho escuro */
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 700;
+    width: 100%;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    box-shadow: 0 6px 12px rgba(2, 30, 80, 0.35);
+}
+
+/* Hover no botão Cadastrar */
+.btn-cadastrar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 18px rgba(2, 30, 80, 0.45);
+}
+
+/* Estilo do ícone Home - igual à imagem (azul-roxo) */
 .home-icon {
     display: flex;
     align-items: center;
     margin-top: 10px;
     margin-left: 20px;
-    color: #4169e1;
 }
 
-/* Estilo do link Home (repetido para garantir) */
+/* Estilo do link Home - cor azul-roxo como na imagem */
 .home-link {
     text-decoration: none;
     display: flex;
     align-items: center;
-    color: #4169e1;
+    gap: 8px;
+    color: #587bfa; /* Azul-roxo vibrante como na imagem */
     font-weight: bold;
     font-size: 1.2em;
+    transition: color 0.2s ease;
+}
+
+.home-link:hover {
+    color: #4568dc; /* Tom mais escuro no hover */
+}
+
+.home-svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
+/* Campo de senha com ícone de olho */
+.password-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-input-wrapper input {
+    padding-right: 40px; /* Espaço para o ícone encostado no canto */
+}
+
+/* Remover ícone nativo do navegador (Chrome/Edge) de mostrar senha */
+.password-input-wrapper input::-webkit-credentials-auto-fill-button,
+.password-input-wrapper input::-webkit-strong-password-auto-fill-button,
+.password-input-wrapper input::-webkit-inner-spin-button,
+.password-input-wrapper input::-webkit-outer-spin-button {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    right: -9999px !important;
+}
+
+/* Remover ícone de mostrar senha do Edge/Chrome */
+.password-input-wrapper input[type="password"]::-webkit-textfield-decoration-container {
+    display: none !important;
+}
+
+/* Remover qualquer ícone de autocomplete do navegador */
+.password-input-wrapper input::-webkit-autofill,
+.password-input-wrapper input::-webkit-autofill:hover,
+.password-input-wrapper input::-webkit-autofill:focus,
+.password-input-wrapper input::-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+    -webkit-text-fill-color: #001f3f !important;
+}
+
+/* Esconder ícone de mostrar senha do Firefox */
+.password-input-wrapper input[type="password"] {
+    -moz-appearance: textfield;
+}
+
+/* Esconder ícone de mostrar senha do Edge/IE */
+.password-input-wrapper input[type="password"]::-ms-reveal {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 8px; /* Encostado no canto direito */
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9); /* Fundo branco para cobrir ícone do navegador */
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    transition: color 0.2s ease;
+    z-index: 9999; /* Garante que fique acima de tudo, incluindo ícones do navegador */
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+}
+
+.toggle-password:hover {
+    color: #001F5B;
+}
+
+.eye-icon {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2;
+    flex-shrink: 0; /* Não encolher */
+}
+
+/* Lógica invertida:
+   - Olho SEM traço (eye-open) = senha OCULTA (password) - visível por padrão
+   - Olho COM traço (eye-closed) = senha VISÍVEL (text) - oculto por padrão
+*/
+
+/* Ícone com traço diagonal (eye-closed) - oculto por padrão (senha está oculta) */
+.eye-closed {
+    display: none !important; /* Forçar ocultação quando senha está oculta */
+}
+
+/* Ícone sem traço (eye-open) - visível por padrão (senha está oculta) */
+.eye-open {
+    display: block !important; /* Forçar exibição quando senha está oculta */
+}
+
+/* Quando senha está VISÍVEL (show-password): 
+   - Ocultar olho sem traço (eye-open)
+   - Mostrar olho com traço (eye-closed) */
+.password-input-wrapper.show-password .eye-open {
+    display: none !important;
+}
+
+.password-input-wrapper.show-password .eye-closed {
+    display: block !important;
+}
+
+/* Garantir que não há pseudo-elementos adicionando ícones */
+.toggle-password::before,
+.toggle-password::after,
+.password-input-wrapper::before,
+.password-input-wrapper::after {
+    display: none !important;
+    content: none !important;
 }
 
 /* ===============================================

@@ -92,17 +92,41 @@ header {
     padding: 8px 12px;
     border-radius: 12px;
     border: none;
-    background-color: #d3d3d3; /* cinza claro conforme solicitado */
+    /* Efeito 3D com gradiente */
+    background: linear-gradient(145deg, #e0e0e0, #b8b8b8); /* Gradiente 3D cinza claro */
     color: #001f3f; /* texto em azul-marinho-escuro conforme solicitado */
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 6px 12px rgba(2, 30, 80, 0.35); /* sombra azul marinho */
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    /* Múltiplas sombras para efeito 3D */
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.2),        /* Sombra externa */
+        0 2px 4px rgba(0, 0, 0, 0.1),      /* Sombra média */
+        inset 0 1px 0 rgba(255, 255, 255, 0.6), /* Brilho superior */
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);     /* Sombra inferior interna */
+    transition: all 0.2s ease;
+    position: relative;
 }
 
 .auth-buttons button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 18px rgba(2, 30, 80, 0.45);
+    /* Efeito 3D ao passar o mouse - botão "elevado" */
+    transform: translateY(-3px);
+    background: linear-gradient(145deg, #e8e8e8, #c0c0c0);
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.25),
+        0 3px 6px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.auth-buttons button:active {
+    /* Efeito 3D ao clicar - botão "pressionado" */
+    transform: translateY(1px);
+    background: linear-gradient(145deg, #b8b8b8, #d0d0d0);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 1px 2px rgba(0, 0, 0, 0.1),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* Ajustes mobile: botões empilhados e largura automática */
@@ -391,23 +415,25 @@ button {
 /* Container principal - layout horizontal */
 .logged-user-container {
     display: flex;
-    align-items: center;
-    gap: 15px;
-    background-color: #f5f5f5;
+    align-items: flex-start;
+    gap: 12px;
+    background-color: #ffffff;
     padding: 12px;
-    border-radius: 8px;
-    font-weight: bold;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    min-width: 450px;
+    max-width: 700px;
 }
 
-/* Imagem de perfil - formato retrato 3x4 com cantos arredondados */
+/* Imagem de perfil - formato quadrado */
 .user-avatar {
     width: 80px;
-    height: 106.67px;
-    border-radius: 12px;
+    height: 80px;
+    border-radius: 8px;
     overflow: hidden;
     border: 2px solid #ddd;
     background-color: #eee;
+    flex-shrink: 0;
 }
 
 .profile-pic {
@@ -416,43 +442,106 @@ button {
     object-fit: cover;
 }
 
-/* Área à direita: botões e status */
+/* Área de informações do usuário ao lado da foto */
 .user-info {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    min-width: 180px;
+    gap: 4px;
+    flex: 1;
+    min-width: 150px;
+}
+
+.user-status-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.status-text {
+    font-size: 12px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.user-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin: 0;
+}
+
+.user-perfil {
+    font-size: 14px;
+    color: #666;
+    margin: 0;
+}
+
+/* Área de ações (botões) à direita */
+.user-actions {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    margin-left: auto;
 }
 
 /* Linha dos botões */
 .buttons-row {
     display: flex;
-    gap: 10px;
+    gap: 8px;
 }
 
 .buttons-row button {
-    flex: 1;
-    background-color: #3b5998;
+    /* Efeito 3D com gradiente azul */
+    background: linear-gradient(145deg, #6a8bfb, #4a6cd9);
     color: white;
     border: none;
-    padding: 8px 12px;
-    border-radius: 5px;
+    padding: 8px 16px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 14px;
-    font-weight: bold;
+    font-size: 13px;
+    font-weight: 500;
     text-align: center;
+    white-space: nowrap;
+    /* Múltiplas sombras para efeito 3D */
+    box-shadow: 
+        0 4px 8px rgba(74, 108, 217, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
 }
 
 .buttons-row button:hover {
-    background-color: #2d4373;
+    /* Efeito 3D ao passar o mouse */
+    transform: translateY(-2px);
+    background: linear-gradient(145deg, #7a9bfb, #5a7ce9);
+    box-shadow: 
+        0 6px 12px rgba(74, 108, 217, 0.4),
+        0 3px 6px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
 }
 
-/* Área de status e nome */
+.buttons-row button:active {
+    /* Efeito 3D ao clicar */
+    transform: translateY(1px);
+    background: linear-gradient(145deg, #4a6cd9, #6a8bfb);
+    box-shadow: 
+        0 2px 4px rgba(74, 108, 217, 0.3),
+        0 1px 2px rgba(0, 0, 0, 0.2),
+        inset 0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Área de status e nome (mantida para compatibilidade) */
 .user-status {
-    text-align: center;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid #ddd;
+    text-align: left;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
     width: 100%;
 }
 
@@ -461,12 +550,6 @@ button {
     font-size: 12px;
     color: #666;
     margin-bottom: 4px;
-}
-
-.user-name {
-    font-size: 16px;
-    font-weight: bold;
-    color: #333;
 }
 
 /* Ícone de ampulheta (GIF ou SVG) */

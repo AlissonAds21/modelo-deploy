@@ -155,6 +155,9 @@ function checkLoginStatus() {
       ? `<img src="${ampulhetaUrl}" alt="Ampulheta" class="hourglass-icon" onerror="this.onerror=null; this.style.display='none'; console.warn('Erro ao carregar ampulheta do Supabase');">`
       : '';
 
+    // Buscar informações completas do usuário (perfil e status)
+    const nomePerfil = usuario.nomePerfil || 'Cliente';
+    
     // Construir HTML de usuário logado (usa ampulheta encontrada ou não)
     document.getElementById('authButtons').innerHTML = `
       <div class="logged-user-container">
@@ -166,15 +169,20 @@ function checkLoginStatus() {
                onerror="console.error('Erro ao carregar imagem:', this.src); this.onerror=null; this.src='${placeholderUrl}';">
         </div>
         
-        <!-- Botões e status à direita -->
+        <!-- Informações do usuário ao lado da foto -->
         <div class="user-info">
+          <div class="user-status-row">
+            <span class="status-text">${ampulhetaImgTag || `<img src="imagens/ampulheta.gif" alt="Ampulheta" class="hourglass-icon" onerror="this.style.display='none'">`} Status Logado</span>
+          </div>
+          <div class="user-name">${usuario.nome}!</div>
+          <div class="user-perfil">Perfil: ${nomePerfil}</div>
+        </div>
+        
+        <!-- Botões à direita -->
+        <div class="user-actions">
           <div class="buttons-row">
             <button onclick="location.href='minha-conta.html'">Minha Conta</button>
             <button onclick="logout()">Sair</button>
-          </div>
-          <div class="user-status">
-            <span>${ampulhetaImgTag || `<img src="imagens/ampulheta.gif" alt="Ampulheta" class="hourglass-icon" onerror="this.style.display='none'">`} Status Logado</span>
-            <div class="user-name">${usuario.nome}!</div>
           </div>
         </div>
       </div>
@@ -182,19 +190,23 @@ function checkLoginStatus() {
   }).catch(function(err) {
     console.warn('Erro ao buscar ampulheta:', err);
     // Em caso de erro ao obter ampulheta, renderizar interface sem a ampulheta
+    const nomePerfil = usuario.nomePerfil || 'Cliente';
     document.getElementById('authButtons').innerHTML = `
       <div class="logged-user-container">
         <div class="user-avatar">
           <img src="${fotoPerfilUrl}" alt="Foto de Perfil" class="profile-pic" onerror="console.error('Erro ao carregar imagem:', this.src); this.onerror=null; this.src='${placeholderUrl}';">
         </div>
         <div class="user-info">
+          <div class="user-status-row">
+            <span class="status-text"><img src="imagens/ampulheta.gif" alt="Ampulheta" class="hourglass-icon" onerror="this.style.display='none'"> Status Logado</span>
+          </div>
+          <div class="user-name">${usuario.nome}!</div>
+          <div class="user-perfil">Perfil: ${nomePerfil}</div>
+        </div>
+        <div class="user-actions">
           <div class="buttons-row">
             <button onclick="location.href='minha-conta.html'">Minha Conta</button>
             <button onclick="logout()">Sair</button>
-          </div>
-          <div class="user-status">
-            <span><img src="imagens/ampulheta.gif" alt="Ampulheta" class="hourglass-icon" onerror="this.style.display='none'"> Status Logado</span>
-            <div class="user-name">${usuario.nome}!</div>
           </div>
         </div>
       </div>

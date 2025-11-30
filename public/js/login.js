@@ -77,12 +77,33 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         alert(result.message);
         window.location.href = 'index.html';
       } else {
-        alert('Erro: ' + result.error);
+        // Mensagem padronizada
+        alert('E-mail, CPF ou senha incorretos.');
         // Limpar campos em caso de erro
         document.getElementById('senha').value = '';
       }
     } catch (err) {
-      alert('Erro de conexão com o servidor.');
+      alert('E-mail, CPF ou senha incorretos.');
       document.getElementById('senha').value = '';
     }
   });
+
+// Funcionalidade do ícone de olho para mostrar/esconder senha
+// Lógica: olho SEM traço = senha oculta, olho COM traço = senha visível
+document.addEventListener('DOMContentLoaded', () => {
+  const togglePassword = document.getElementById('togglePassword');
+  const senhaInput = document.getElementById('senha');
+  const passwordWrapper = document.querySelector('.password-input-wrapper');
+  
+  if (togglePassword && senhaInput && passwordWrapper) {
+    togglePassword.addEventListener('click', () => {
+      const isPassword = senhaInput.type === 'password';
+      // Se está como password (oculta), mudar para text (visível)
+      // Se está como text (visível), mudar para password (oculta)
+      senhaInput.type = isPassword ? 'text' : 'password';
+      // Quando senha está visível (text), mostrar olho com traço
+      // Quando senha está oculta (password), mostrar olho sem traço
+      passwordWrapper.classList.toggle('show-password', !isPassword);
+    });
+  }
+});

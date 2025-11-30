@@ -37,19 +37,89 @@ pool.query('SELECT NOW()', (err) => {
   else console.log('✅ Conectado ao Neon PostgreSQL!');
 });
 
-// Criar tabela (se não existir)
+// Criar tabelas (se não existirem)
 // IMPORTANTE: Usar aspas duplas para manter o case da coluna fotoPerfil
+
+// Criar tabela de perfis primeiro
+const createPerfilTable = `
+  CREATE TABLE IF NOT EXISTS perfil_usuarios (
+    id_perfil SERIAL PRIMARY KEY,
+    perfil VARCHAR(50) NOT NULL
+  );
+`;
+pool.query(createPerfilTable).catch(err => console.error('Erro ao criar tabela perfil_usuarios:', err));
+
+// Inserir perfis padrão
+pool.query(`
+  INSERT INTO perfil_usuarios (id_perfil, perfil) VALUES
+  (1, 'Master'),
+  (2, 'Cliente'),
+  (3, 'Profissional')
+  ON CONFLICT (id_perfil) DO NOTHING;
+`).catch(err => console.error('Erro ao inserir perfis:', err));
+
+// Criar tabela de histórico
+const createHistoricoTable = `
+  CREATE TABLE IF NOT EXISTS historico_movimentacoes (
+    id_mov SERIAL PRIMARY KEY,
+    id_usuario INTEGER NOT NULL REFERENCES cadastro_usuario(id_usuario) ON DELETE CASCADE,
+    acao TEXT NOT NULL,
+    data_mov TIMESTAMP DEFAULT NOW()
+  );
+`;
+pool.query(createHistoricoTable).catch(err => console.error('Erro ao criar tabela historico_movimentacoes:', err));
+
+// Criar tabela de serviços
+const createServicosTable = `
+  CREATE TABLE IF NOT EXISTS servicos (
+    id_servico SERIAL PRIMARY KEY,
+    tipo_servico VARCHAR(100),
+    titulo_servico VARCHAR(100),
+    servico VARCHAR(200),
+    descricao_servico TEXT,
+    valor_servico NUMERIC(10,2)
+  );
+`;
+pool.query(createServicosTable).catch(err => console.error('Erro ao criar tabela servicos:', err));
+
+// Criar tabela cadastro_usuario com novas colunas
 const createTable = `
   CREATE TABLE IF NOT EXISTS cadastro_usuario (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
+    perfil INTEGER DEFAULT 2 REFERENCES perfil_usuarios(id_perfil),
     cpf VARCHAR(14) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     senha VARCHAR(255) NOT NULL,
-    "fotoPerfil" VARCHAR(500)
+    "fotoPerfil" VARCHAR(500),
+    data_cadastro TIMESTAMP DEFAULT NOW(),
+    status VARCHAR(20) DEFAULT 'Ativo'
   );
 `;
 pool.query(createTable).catch(err => console.error('Erro ao criar tabela:', err));
+
+// Adicionar colunas se não existirem (para tabelas já criadas)
+pool.query(`
+  ALTER TABLE cadastro_usuario
+  ADD COLUMN IF NOT EXISTS perfil INTEGER DEFAULT 2 REFERENCES perfil_usuarios(id_perfil);
+`).catch(err => console.error('Erro ao adicionar coluna perfil:', err));
+
+pool.query(`
+  ALTER TABLE cadastro_usuario
+  ADD COLUMN IF NOT EXISTS data_cadastro TIMESTAMP DEFAULT NOW();
+`).catch(err => console.error('Erro ao adicionar coluna data_cadastro:', err));
+
+pool.query(`
+  ALTER TABLE cadastro_usuario
+  ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'Ativo';
+`).catch(err => console.error('Erro ao adicionar coluna status:', err));
+
+// Atualizar registros existentes
+pool.query(`
+  UPDATE cadastro_usuario
+  SET perfil = 2, status = 'Ativo', data_cadastro = COALESCE(data_cadastro, NOW())
+  WHERE perfil IS NULL OR status IS NULL OR data_cadastro IS NULL;
+`).catch(err => console.error('Erro ao atualizar registros:', err));
 
 // === MIDDLEWARES ===
 app.use(cors());
@@ -146,28 +216,35 @@ app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
       return res.status(409).json({ error: 'CPF ou e-mail já cadastrado.' });
     }
 
-    // Criar usuário
+    // Criar usuário (perfil padrão = 2 = Cliente, status = 'Ativo')
     const hashSenha = await bcrypt.hash(senha, 10);
+    
+    let userId;
     
     // Tentar inserir com "fotoPerfil" (case preservado) primeiro
     // Se falhar, tentar com fotoperfil (minúsculo)
     try {
-      await pool.query(
-        'INSERT INTO cadastro_usuario (nome, cpf, email, senha, "fotoPerfil") VALUES ($1, $2, $3, $4, $5)',
-        [nome, cpf, email, hashSenha, fotoPerfilUrl]
+      const result = await pool.query(
+        'INSERT INTO cadastro_usuario (nome, perfil, cpf, email, senha, "fotoPerfil", status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+        [nome, 2, cpf, email, hashSenha, fotoPerfilUrl, 'Ativo']
       );
+      userId = result.rows[0].id;
     } catch (insertError) {
       // Se der erro, a coluna provavelmente está em minúsculo
       if (insertError.code === '42703' || insertError.message.includes('does not exist')) {
         console.log('⚠️ Tentando com coluna em minúsculo...');
-        await pool.query(
-          'INSERT INTO cadastro_usuario (nome, cpf, email, senha, fotoperfil) VALUES ($1, $2, $3, $4, $5)',
-          [nome, cpf, email, hashSenha, fotoPerfilUrl]
+        const result = await pool.query(
+          'INSERT INTO cadastro_usuario (nome, perfil, cpf, email, senha, fotoperfil, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+          [nome, 2, cpf, email, hashSenha, fotoPerfilUrl, 'Ativo']
         );
+        userId = result.rows[0].id;
       } else {
         throw insertError; // Re-lançar se for outro tipo de erro
       }
     }
+    
+    // Registrar histórico: conta criada
+    await registrarHistorico(userId, 'Conta criada com sucesso');
     
     console.log('✅ Usuário cadastrado com foto:', fotoPerfilUrl);
 
@@ -177,6 +254,19 @@ app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
     res.status(500).json({ error: 'Erro interno ao cadastrar.' });
   }
 });
+
+// === FUNÇÃO: Registrar histórico de movimentações ===
+async function registrarHistorico(idUsuario, acao) {
+  try {
+    await pool.query(
+      'INSERT INTO historico_movimentacoes (id_usuario, acao) VALUES ($1, $2)',
+      [idUsuario, acao]
+    );
+  } catch (err) {
+    console.error('Erro ao registrar histórico:', err);
+    // Não bloquear operação se histórico falhar
+  }
+}
 
 // === MIDDLEWARE: Verificar JWT ===
 function verificarToken(req, res, next) {
@@ -190,6 +280,7 @@ function verificarToken(req, res, next) {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.userId = decoded.userId;
     req.userEmail = decoded.email;
+    req.userPerfil = decoded.perfil; // Adicionar perfil ao request
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
@@ -199,54 +290,112 @@ function verificarToken(req, res, next) {
   }
 }
 
+// === MIDDLEWARE: Verificar se é Master ===
+function verificarMaster(req, res, next) {
+  if (req.userPerfil !== 1) {
+    return res.status(403).json({ error: 'Acesso negado. Apenas usuários Master podem realizar esta ação.' });
+  }
+  next();
+}
+
 // === ROTA: LOGIN ===
 app.post('/api/login', async (req, res) => {
   const { login, senha } = req.body;
   if (!login || !senha) {
-    return res.status(400).json({ error: 'CPF/E-mail e senha são obrigatórios.' });
+    return res.status(400).json({ error: 'E-mail, CPF ou senha incorretos.' });
   }
 
   try {
-    // Tentar primeiro com aspas (se a coluna foi criada com case preservado)
-    // Se falhar, tentar sem aspas (minúsculo)
+    // Normalizar o login (trim e lowercase para email)
+    const loginNormalizado = login.trim();
+    
+    // Buscar usuário com perfil e status - aceita email OU cpf
     let result;
     try {
       result = await pool.query(
-        'SELECT id, nome, cpf, email, senha, "fotoPerfil" as fotoperfil FROM cadastro_usuario WHERE cpf = $1 OR email = $1',
-        [login]
+        `SELECT u.id, u.nome, u.cpf, u.email, u.senha, u.perfil, u.status, 
+                u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
+         FROM cadastro_usuario u
+         LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+         WHERE (LOWER(u.email) = LOWER($1) OR u.cpf = $1)`,
+        [loginNormalizado]
       );
     } catch (colError) {
-      // Se der erro, a coluna provavelmente está em minúsculo
+      // Se der erro, tentar sem aspas (minúsculo)
       result = await pool.query(
-        'SELECT id, nome, cpf, email, senha, fotoperfil FROM cadastro_usuario WHERE cpf = $1 OR email = $1',
-        [login]
+        `SELECT u.id, u.nome, u.cpf, u.email, u.senha, u.perfil, u.status, 
+                u.fotoperfil, p.perfil as nome_perfil
+         FROM cadastro_usuario u
+         LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+         WHERE (LOWER(u.email) = LOWER($1) OR u.cpf = $1)`,
+        [loginNormalizado]
       );
     }
     
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'CPF/E-mail ou senha inválidos.' });
+      console.log('❌ Usuário não encontrado para login:', loginNormalizado);
+      return res.status(401).json({ error: 'E-mail, CPF ou senha incorretos.' });
     }
 
     const user = result.rows[0];
+    
+    // Log para debug
+    console.log('🔍 Usuário encontrado:', {
+      id: user.id,
+      email: user.email,
+      cpf: user.cpf,
+      perfil: user.perfil,
+      status: user.status,
+      senhaHash: user.senha ? user.senha.substring(0, 20) + '...' : 'NULL'
+    });
+    
+    // Verificar status - usuários inativos não podem logar
+    if (!user.status || user.status !== 'Ativo') {
+      console.log('❌ Usuário inativo:', user.id);
+      return res.status(403).json({ error: 'Conta inativa. Entre em contato com o suporte.' });
+    }
+    
+    // Verificar se senha existe no banco
+    if (!user.senha) {
+      console.log('❌ Senha não encontrada no banco para usuário:', user.id);
+      return res.status(401).json({ error: 'E-mail, CPF ou senha incorretos.' });
+    }
+    
+    // Comparar senha usando bcrypt
     const valid = await bcrypt.compare(senha, user.senha);
-    if (!valid) return res.status(401).json({ error: 'CPF/E-mail ou senha inválidos.' });
+    
+    if (!valid) {
+      console.log('❌ Senha inválida para usuário:', user.id);
+      // Log adicional para debug (não em produção)
+      const testHash = await bcrypt.hash(senha, 10);
+      console.log('🔍 Hash de teste gerado:', testHash.substring(0, 20) + '...');
+      return res.status(401).json({ error: 'E-mail, CPF ou senha incorretos.' });
+    }
+    
+    console.log('✅ Senha válida para usuário:', user.id);
 
     // Obter a URL da foto (pode estar como fotoperfil)
     let fotoPerfil = user.fotoperfil || null;
+    let nomePerfil = user.nome_perfil || 'Cliente';
     
     // Log para debug
     console.log('📸 Foto de perfil do banco:', fotoPerfil);
+    console.log('👤 Perfil do usuário:', nomePerfil);
     
-    // Gerar JWT token
+    // Gerar JWT token (incluir perfil)
     const token = jwt.sign(
       { 
         userId: user.id, 
         email: user.email,
-        nome: user.nome
+        nome: user.nome,
+        perfil: user.perfil || 2
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
+    
+    // Registrar histórico: login realizado
+    await registrarHistorico(user.id, 'Login realizado com sucesso');
     
     res.json({
       message: 'Login realizado com sucesso!',
@@ -256,22 +405,237 @@ app.post('/api/login', async (req, res) => {
         nome: user.nome,
         email: user.email,
         cpf: user.cpf,
-        fotoPerfil: fotoPerfil // URL completa do Supabase
+        fotoPerfil: fotoPerfil,
+        perfil: user.perfil || 2,
+        nomePerfil: nomePerfil,
+        status: user.status
       }
     });
   } catch (err) {
-    console.error('Erro no login:', err);
-    res.status(500).json({ error: 'Erro interno no login.' });
+    console.error('❌ Erro no login:', err);
+    res.status(500).json({ error: 'E-mail, CPF ou senha incorretos.' });
   }
 });
 
 // === ROTA: Verificar Token (para validação no cliente) ===
-app.get('/api/verificar-sessao', verificarToken, (req, res) => {
-  res.json({ 
-    valid: true, 
-    userId: req.userId,
-    message: 'Sessão válida' 
-  });
+app.get('/api/verificar-sessao', verificarToken, async (req, res) => {
+  try {
+    // Buscar dados completos do usuário incluindo perfil
+    const result = await pool.query(
+      `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, 
+              u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
+       FROM cadastro_usuario u
+       LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+       WHERE u.id = $1`,
+      [req.userId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    const user = result.rows[0];
+    res.json({ 
+      valid: true, 
+      userId: user.id, 
+      email: user.email,
+      nome: user.nome,
+      perfil: user.perfil,
+      nomePerfil: user.nome_perfil || 'Cliente',
+      status: user.status,
+      fotoPerfil: user.fotoperfil
+    });
+  } catch (err) {
+    console.error('Erro ao verificar sessão:', err);
+    res.status(500).json({ error: 'Erro ao verificar sessão.' });
+  }
+});
+
+// === ROTAS DE GERENCIAMENTO DE USUÁRIOS ===
+
+// Listar todos os usuários (apenas Master)
+app.get('/api/usuarios', verificarToken, verificarMaster, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
+              u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
+       FROM cadastro_usuario u
+       LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+       ORDER BY u.data_cadastro DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro ao listar usuários:', err);
+    res.status(500).json({ error: 'Erro ao listar usuários.' });
+  }
+});
+
+// Buscar usuário por ID
+app.get('/api/usuarios/:id', verificarToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Master pode ver qualquer usuário, outros só podem ver a si mesmos
+    if (req.userPerfil !== 1 && parseInt(id) !== req.userId) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+    
+    const result = await pool.query(
+      `SELECT u.id, u.nome, u.email, u.cpf, u.perfil, u.status, u.data_cadastro,
+              u."fotoPerfil" as fotoperfil, p.perfil as nome_perfil
+       FROM cadastro_usuario u
+       LEFT JOIN perfil_usuarios p ON u.perfil = p.id_perfil
+       WHERE u.id = $1`,
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Erro ao buscar usuário:', err);
+    res.status(500).json({ error: 'Erro ao buscar usuário.' });
+  }
+});
+
+// Inativar usuário (não deletar) - apenas Master
+app.put('/api/usuarios/:id/inativar', verificarToken, verificarMaster, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const masterId = req.userId;
+    
+    // Verificar se usuário existe
+    const userCheck = await pool.query(
+      'SELECT id, nome, status FROM cadastro_usuario WHERE id = $1',
+      [id]
+    );
+    
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    const usuario = userCheck.rows[0];
+    
+    // Não permitir inativar a si mesmo
+    if (parseInt(id) === masterId) {
+      return res.status(400).json({ error: 'Você não pode inativar sua própria conta.' });
+    }
+    
+    // Atualizar status para Inativo
+    await pool.query(
+      'UPDATE cadastro_usuario SET status = $1 WHERE id = $2',
+      ['Inativo', id]
+    );
+    
+    // Registrar histórico
+    await registrarHistorico(parseInt(id), `Conta inativada pelo Master (ID: ${masterId})`);
+    await registrarHistorico(masterId, `Inativou conta do usuário ${usuario.nome} (ID: ${id})`);
+    
+    res.json({ message: 'Usuário inativado com sucesso.' });
+  } catch (err) {
+    console.error('Erro ao inativar usuário:', err);
+    res.status(500).json({ error: 'Erro ao inativar usuário.' });
+  }
+});
+
+// Reativar usuário - apenas Master
+app.put('/api/usuarios/:id/reativar', verificarToken, verificarMaster, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const masterId = req.userId;
+    
+    // Verificar se usuário existe
+    const userCheck = await pool.query(
+      'SELECT id, nome FROM cadastro_usuario WHERE id = $1',
+      [id]
+    );
+    
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    const usuario = userCheck.rows[0];
+    
+    // Atualizar status para Ativo
+    await pool.query(
+      'UPDATE cadastro_usuario SET status = $1 WHERE id = $2',
+      ['Ativo', id]
+    );
+    
+    // Registrar histórico
+    await registrarHistorico(parseInt(id), `Conta reativada pelo Master (ID: ${masterId})`);
+    await registrarHistorico(masterId, `Reativou conta do usuário ${usuario.nome} (ID: ${id})`);
+    
+    res.json({ message: 'Usuário reativado com sucesso.' });
+  } catch (err) {
+    console.error('Erro ao reativar usuário:', err);
+    res.status(500).json({ error: 'Erro ao reativar usuário.' });
+  }
+});
+
+// Atualizar perfil de usuário - apenas Master
+app.put('/api/usuarios/:id/perfil', verificarToken, verificarMaster, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { perfil } = req.body;
+    const masterId = req.userId;
+    
+    if (!perfil || ![1, 2, 3].includes(parseInt(perfil))) {
+      return res.status(400).json({ error: 'Perfil inválido. Use 1 (Master), 2 (Cliente) ou 3 (Profissional).' });
+    }
+    
+    // Verificar se usuário existe
+    const userCheck = await pool.query(
+      'SELECT id, nome, perfil FROM cadastro_usuario WHERE id = $1',
+      [id]
+    );
+    
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+    
+    const usuario = userCheck.rows[0];
+    const perfilAntigo = usuario.perfil;
+    
+    // Atualizar perfil
+    await pool.query(
+      'UPDATE cadastro_usuario SET perfil = $1 WHERE id = $2',
+      [perfil, id]
+    );
+    
+    // Registrar histórico
+    await registrarHistorico(parseInt(id), `Perfil alterado de ${perfilAntigo} para ${perfil} pelo Master (ID: ${masterId})`);
+    await registrarHistorico(masterId, `Alterou perfil do usuário ${usuario.nome} (ID: ${id}) de ${perfilAntigo} para ${perfil}`);
+    
+    res.json({ message: 'Perfil atualizado com sucesso.' });
+  } catch (err) {
+    console.error('Erro ao atualizar perfil:', err);
+    res.status(500).json({ error: 'Erro ao atualizar perfil.' });
+  }
+});
+
+// Obter histórico de movimentações de um usuário
+app.get('/api/usuarios/:id/historico', verificarToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Master pode ver histórico de qualquer usuário, outros só podem ver o próprio
+    if (req.userPerfil !== 1 && parseInt(id) !== req.userId) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+    
+    const result = await pool.query(
+      'SELECT * FROM historico_movimentacoes WHERE id_usuario = $1 ORDER BY data_mov DESC',
+      [id]
+    );
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro ao buscar histórico:', err);
+    res.status(500).json({ error: 'Erro ao buscar histórico.' });
+  }
 });
 
 // ============================================
