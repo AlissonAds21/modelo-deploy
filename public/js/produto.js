@@ -209,9 +209,9 @@ async function confirmarPagamento() {
     // Verificar estoque
     if (produto.estoque_atual < quantidade) {
       alert(`❌ Estoque insuficiente!\n\nDisponível: ${produto.estoque_atual}\nSolicitado: ${quantidade}`);
-      return;
-    }
-    
+    return;
+  }
+  
     // Realizar venda (id_vendedor = 5 é o vendedor padrão)
     const vendaResponse = await fetch('/api/vendas', {
       method: 'POST',

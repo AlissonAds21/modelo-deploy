@@ -13,13 +13,7 @@
             <img src="/imagensSite/logo.png" alt="Logo LOS PATRONES DA REFORMA" class="logo">
         </div>
         
-        <div class="social-icons">
-            <a href="#">📞 WhatsApp</a>
-            <a href="#">📷 Instagram</a>
-            <a href="#">📘 Facebook</a>
-            <a href="#">🐦 Twitter</a>
-            <a href="#">✉️ Gmail</a>
-        </div>
+    
         <div class="auth-buttons" id="authButtons">
             <!-- Botões serão gerados via JavaScript index.js-->
         </div>
@@ -77,7 +71,7 @@
             </div>
             <div class="anuncio-buttons">
                 <button class="btn-voltar" onclick="window.location.href='index.html'">
-                    <span>←</span> VOLTAR
+                    VOLTAR <span>↩</span>
                 </button>
             </div>
         </section>
@@ -107,11 +101,11 @@
                     <textarea id="descricao-assentamento" rows="4" placeholder="Descreva o serviço oferecido"></textarea>
                 </div>
                 <div class="anuncio-buttons">
+                    <button class="btn-voltar" onclick="voltarTela('assentamento')">
+                        VOLTAR <span>↩</span>
+                    </button>
                     <button class="btn-proximo" onclick="avancarTela('assentamento')">
                         PRÓXIMO <span>→</span>
-                    </button>
-                    <button class="btn-voltar" onclick="voltarTela('assentamento')">
-                        <span>←</span> VOLTAR
                     </button>
                 </div>
             </div>
@@ -139,11 +133,11 @@
                     <textarea id="descricao-paredes" rows="4" placeholder="Descreva o serviço oferecido"></textarea>
                 </div>
                 <div class="anuncio-buttons">
+                    <button class="btn-voltar" onclick="voltarTela('pintura-paredes')">
+                        VOLTAR <span>↩</span>
+                    </button>
                     <button class="btn-proximo" onclick="avancarTela('pintura-paredes')">
                         PRÓXIMO <span>→</span>
-                    </button>
-                    <button class="btn-voltar" onclick="voltarTela('pintura-paredes')">
-                        <span>←</span> VOLTAR
                     </button>
                 </div>
             </div>
@@ -172,11 +166,11 @@
                     <textarea id="descricao-portoes" rows="4" placeholder="Descreva o serviço oferecido"></textarea>
                 </div>
                 <div class="anuncio-buttons">
+                    <button class="btn-voltar" onclick="voltarTela('pintura-portoes')">
+                        VOLTAR <span>↩</span>
+                    </button>
                     <button class="btn-proximo" onclick="avancarTela('pintura-portoes')">
                         PRÓXIMO <span>→</span>
-                    </button>
-                    <button class="btn-voltar" onclick="voltarTela('pintura-portoes')">
-                        <span>←</span> VOLTAR
                     </button>
                 </div>
             </div>
@@ -205,11 +199,11 @@
                     <textarea id="descricao-acabamentos" rows="4" placeholder="Descreva o serviço oferecido"></textarea>
                 </div>
                 <div class="anuncio-buttons">
+                    <button class="btn-voltar" onclick="voltarTela('acabamentos')">
+                        VOLTAR <span>↩</span>
+                    </button>
                     <button class="btn-proximo" onclick="avancarTela('acabamentos')">
                         PRÓXIMO <span>→</span>
-                    </button>
-                    <button class="btn-voltar" onclick="voltarTela('acabamentos')">
-                        <span>←</span> VOLTAR
                     </button>
                 </div>
             </div>
@@ -224,11 +218,11 @@
                     <!-- 8 slots de upload serão criados via JavaScript -->
                 </div>
                 <div class="anuncio-buttons">
+                    <button class="btn-voltar" onclick="voltarTela('fotos')">
+                        VOLTAR <span>↩</span>
+                    </button>
                     <button class="btn-salvar" onclick="salvarAnuncio()">
                         SALVAR
-                    </button>
-                    <button class="btn-voltar" onclick="voltarTela('fotos')">
-                        <span>←</span> VOLTAR
                     </button>
                 </div>
             </div>

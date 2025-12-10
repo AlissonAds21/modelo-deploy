@@ -29,3 +29,6 @@ SELECT 'Tabela servicos criada com sucesso!' AS status;
 SELECT * FROM servicos LIMIT 1;
 
 
+
+
+

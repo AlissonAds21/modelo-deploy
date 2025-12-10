@@ -45,3 +45,6 @@ COMMENT ON COLUMN endereco.usuario_id IS 'ID do usu√°rio que cadastrou o endere√
 SELECT 'Tabela endereco criada com sucesso!' AS status;
 SELECT * FROM endereco LIMIT 1;
 
+
+
+

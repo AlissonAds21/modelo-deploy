@@ -1,22 +1,22 @@
-# 📷 Documentação: Tela de Gerenciamento de Imagens (addserviços.html)
+# 📷 Documentação: Tela de Gerenciamento de Imagens (add-servicos.html)
 
 ## ✅ Implementação Completa
 
 ### Arquivos Criados
 
-1. **`public/addserviços.html`**
+1. **`public/add-servicos.html`**
    - Página completa de gerenciamento de imagens
    - Header e navegação consistentes com o projeto
    - Grid de miniaturas responsivo
    - Modais para opções, upload e preview
 
-2. **`public/addserviços.css`**
+2. **`public/add-servicos.css`**
    - Estilos específicos para a tela
    - Animações e efeitos visuais
    - Design responsivo
    - Consistente com o projeto
 
-3. **`public/addserviços.js`**
+3. **`public/add-servicos.js`**
    - Lógica completa de gerenciamento
    - Integração com API
    - Validações e limites
@@ -66,7 +66,7 @@
 - ✅ Validação de limite (máx. 10 imagens)
 
 ### 7. **Integração com produto1.html**
-- ✅ Botão "Adicionar/Editar Fotos" redireciona para `addserviços.html`
+- ✅ Botão "Adicionar/Editar Fotos" redireciona para `add-servicos.html`
 - ✅ Código do produto passado via URL (`?codigo=1`)
 - ✅ Fallback para localStorage se necessário
 - ✅ Botão "Voltar para Produto" retorna à página original
@@ -77,7 +77,7 @@
 
 1. **produto1.html** → Usuário clica em "📷 Adicionar/Editar Fotos"
 2. **Verificação de Login** → Se não logado, pede login
-3. **Redirecionamento** → `addserviços.html?codigo=1`
+3. **Redirecionamento** → `add-servicos.html?codigo=1`
 4. **Carregamento** → Busca informações do produto e imagens
 5. **Gerenciamento** → Usuário pode adicionar, editar, deletar imagens
 6. **Voltar** → Botão retorna para `produto1.html?codigo=1`
@@ -169,7 +169,7 @@
 ### 1. Acessar a Tela
 - Na página `produto1.html`, clique em "📷 Adicionar/Editar Fotos"
 - Se não estiver logado, será solicitado login
-- Após login, redireciona para `addserviços.html?codigo=1`
+- Após login, redireciona para `add-servicos.html?codigo=1`
 
 ### 2. Adicionar Nova Imagem
 - Clique no botão "Adicionar Imagem"
@@ -237,7 +237,7 @@
 ### Modificações em Arquivos Existentes:
 - **`public/js/produto-imagens.js`**
   - Função `verificarLoginERedirecionar()` adicionada
-  - Botão agora redireciona para `addserviços.html` em vez de abrir modal
+  - Botão agora redireciona para `add-servicos.html` em vez de abrir modal
 
 ### Arquivos Não Modificados:
 - Nenhum outro arquivo foi alterado

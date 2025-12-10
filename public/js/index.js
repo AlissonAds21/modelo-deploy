@@ -141,7 +141,7 @@ function checkLoginStatus() {
 
     // Se não encontrar no banco, usar fallback (ocultar ou usar placeholder)
     const ampulhetaImgTag = ampulhetaUrl 
-      ? `<img src="${ampulhetaUrl}" alt="Ampulheta" class="hourglass-icon" onerror="this.onerror=null; this.style.display='none'; console.warn('Erro ao carregar ampulheta do Supabase');">`
+      ? `<img src="${ampulhetaUrl}" alt="Ampulheta" class="hourglass-icon" onload="console.log('✅ Ampulheta carregada')" onerror="this.onerror=null; this.style.display='none'; console.warn('⚠️ Erro ao carregar ampulheta do Supabase:', this.src);">`
       : '';
 
     // Buscar informações completas do usuário (perfil e status)
@@ -282,6 +282,8 @@ async function carregarUltimasPostagens() {
     
     const produtos = await response.json();
     
+    console.log(`📦 Recebidos ${produtos.length} produtos/anúncios da API`);
+    
     // Limpar grid
     updatesGrid.innerHTML = '';
     
@@ -294,14 +296,55 @@ async function carregarUltimasPostagens() {
       if (produto) {
         // Card com produto/serviço
         const titulo = produto.titulo || produto.produto || 'Sem título';
-        const tipo = produto.tipo || 'produto';
+        // Verificar tipo: se tem id_anuncio ou tipo é 'anuncio', é anúncio; caso contrário, é produto
+        const tipo = produto.tipo || (produto.id_anuncio ? 'anuncio' : 'produto');
+        
+        // Garantir que a URL da imagem está correta
+        let imagemUrl = produto.imagem;
+        if (imagemUrl) {
+          // Se a URL contém /upload/s/, substituir pelo caminho correto
+          if (imagemUrl.includes('/upload/s/')) {
+            imagemUrl = imagemUrl.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+          }
+          // Garantir que começa com http
+          if (!imagemUrl.startsWith('http')) {
+            console.warn('⚠️ URL de imagem incompleta:', imagemUrl);
+            imagemUrl = null;
+          }
+        }
+        
+        // Log para debug
+        if (imagemUrl) {
+          console.log(`📸 [${i + 1}] Carregando imagem para "${titulo}":`, imagemUrl);
+        } else {
+          console.warn(`⚠️ [${i + 1}] Sem imagem para "${titulo}"`);
+        }
+        
+        // Criar elemento de imagem com melhor tratamento de erro
+        let imagemHTML = '';
+        if (imagemUrl) {
+          // Usar uma abordagem mais robusta para carregar imagens
+          imagemHTML = `<img src="${imagemUrl}" alt="${titulo}" class="service-card-image" loading="lazy" onload="console.log('✅ Imagem carregada:', this.src)" onerror="console.error('❌ Erro ao carregar imagem:', this.src); this.style.opacity='0.3'; this.style.filter='grayscale(100%)'; this.alt='Erro ao carregar'; this.title='Erro ao carregar imagem';">`;
+        } else {
+          imagemHTML = '<div class="service-card-image" style="background-color: #f5f5f5; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px; height: 150px;">Sem imagem</div>';
+        }
+        
+        // Formatar data
+        const dataFormatada = produto.created_at ? formatarDataCard(produto.created_at) : '';
+        
+        // Cidade (apenas se for master ou profissional)
+        const cidadeHTML = (produto.usuario_perfil === 1 || produto.usuario_perfil === 3) && produto.usuario_cidade 
+          ? `<p class="service-card-city" style="font-size: 11px; color: #888; margin: 2px 0;">📍 ${produto.usuario_cidade}</p>` 
+          : '';
         
         card.innerHTML = `
           <div class="service-card-content">
-            ${produto.imagem ? `<img src="${produto.imagem}" alt="${titulo}" class="service-card-image" onerror="this.style.display='none'">` : ''}
+            ${imagemHTML}
             <h4 class="service-card-title">${titulo}</h4>
             ${produto.marca ? `<p class="service-card-marca" style="font-size: 12px; color: #666; margin: 4px 0;">${produto.marca}</p>` : ''}
             ${produto.valor_venda > 0 ? `<p class="service-card-price">R$ ${produto.valor_venda.toFixed(2).replace('.', ',')}</p>` : ''}
+            ${dataFormatada ? `<p class="service-card-date" style="font-size: 11px; color: #888; margin: 2px 0;">📅 ${dataFormatada}</p>` : ''}
+            ${cidadeHTML}
           </div>
         `;
         // Adicionar link se for produto
@@ -310,6 +353,50 @@ async function carregarUltimasPostagens() {
           card.addEventListener('click', () => {
             window.location.href = `produto${produto.codigo_produto}.html`;
           });
+        } else if (tipo === 'anuncio' && (produto.id_anuncio || produto.id)) {
+          // Anúncios redirecionam para servico.html
+          const anuncioId = produto.id_anuncio || produto.id;
+          card.style.cursor = 'pointer';
+          
+          // Função para redirecionar
+          const redirecionarParaServico = () => {
+            console.log(`🔄 Redirecionando para servico.html?id=${anuncioId}`);
+            window.location.href = `servico.html?id=${anuncioId}`;
+          };
+          
+          // Tornar todo o card clicável
+          card.addEventListener('click', (e) => {
+            // Permitir cliques em links ou botões dentro do card
+            if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
+              return;
+            }
+            redirecionarParaServico();
+          });
+          
+          // Tornar imagem e título especificamente clicáveis (com feedback visual)
+          const img = card.querySelector('.service-card-image');
+          const title = card.querySelector('.service-card-title');
+          
+          if (img) {
+            img.style.cursor = 'pointer';
+            img.title = 'Clique para ver detalhes do anúncio';
+            img.addEventListener('click', (e) => {
+              e.stopPropagation();
+              redirecionarParaServico();
+            });
+          }
+          
+          if (title) {
+            title.style.cursor = 'pointer';
+            title.title = 'Clique para ver detalhes do anúncio';
+            title.addEventListener('click', (e) => {
+              e.stopPropagation();
+              redirecionarParaServico();
+            });
+          }
+          
+          // Adicionar classe para indicar que é clicável
+          card.classList.add('clickable-card');
         } else if (tipo === 'servico') {
           // Serviços podem ter link futuro ou apenas visualização
           card.style.cursor = 'default';
@@ -419,6 +506,18 @@ function toggleFavorito(event, produtoId) {
   }
   
   localStorage.setItem('produtosFavoritos', JSON.stringify(favoritos));
+}
+
+// Formatar data para cards
+function formatarDataCard(data) {
+  if (!data) return '';
+  
+  const date = new Date(data);
+  const dia = String(date.getDate()).padStart(2, '0');
+  const mes = String(date.getMonth() + 1).padStart(2, '0');
+  const ano = String(date.getFullYear()).slice(-2);
+  
+  return `${dia}/${mes}/${ano}`;
 }
 
 // Função para inicializar favoritos ao carregar a página

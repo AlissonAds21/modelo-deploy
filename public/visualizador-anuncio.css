@@ -1,0 +1,28 @@
+/* Estilos específicos para visualizador de anúncio */
+/* Herda estilos de produto.css */
+
+.anuncio-status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+.anuncio-status-badge.published {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.anuncio-status-badge.paused {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.anuncio-status-badge.sold {
+    background-color: #e5e7eb;
+    color: #374151;
+}
+
+

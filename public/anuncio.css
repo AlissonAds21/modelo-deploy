@@ -21,7 +21,7 @@
 /* Grid de serviços (Tela 1) */
 .servicos-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 20px;
     margin-bottom: 30px;
 }
@@ -38,6 +38,8 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    width: 100%;
+    height: 100%;
 }
 
 .servico-card:hover {
@@ -89,6 +91,9 @@
     justify-content: center;
     min-height: 60px;
     line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 /* Container do formulário */
@@ -289,6 +294,25 @@
     overflow: hidden;
 }
 
+.foto-slot.principal-slot::before {
+    content: 'Principal';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 8px;
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 500;
+    color: #001f3f;
+    z-index: 1;
+    pointer-events: none;
+}
+
 .foto-slot:hover {
     border-color: #587bfa;
     background: #f0f4ff;
@@ -342,11 +366,11 @@
     gap: 15px;
     justify-content: center;
     margin-top: 30px;
+    flex-direction: row-reverse; /* Inverter ordem: VOLTAR à esquerda, PRÓXIMO à direita */
 }
 
 .btn-proximo,
-.btn-salvar,
-.btn-voltar {
+.btn-salvar {
     padding: 12px 24px;
     border: 2px solid #001f3f;
     border-radius: 8px;
@@ -367,9 +391,30 @@
         inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
+.btn-voltar {
+    padding: 12px 24px;
+    border: 2px solid #001f3f;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Efeito 3D igual ao botão PRÓXIMO */
+    background: linear-gradient(145deg, #e0e0e0, #b8b8b8);
+    color: #001f3f;
+    text-transform: uppercase;
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
 .btn-proximo:hover,
-.btn-salvar:hover,
-.btn-voltar:hover {
+.btn-salvar:hover {
     transform: translateY(-3px);
     background: linear-gradient(145deg, #e8e8e8, #c0c0c0);
     box-shadow: 
@@ -380,7 +425,26 @@
 }
 
 .btn-proximo:active,
-.btn-salvar:active,
+.btn-salvar:active {
+    transform: translateY(1px);
+    background: linear-gradient(145deg, #b8b8b8, #d0d0d0);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 1px 2px rgba(0, 0, 0, 0.1),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-voltar:hover {
+    transform: translateY(-3px);
+    background: linear-gradient(145deg, #e8e8e8, #c0c0c0);
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.25),
+        0 3px 6px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
 .btn-voltar:active {
     transform: translateY(1px);
     background: linear-gradient(145deg, #b8b8b8, #d0d0d0);
@@ -399,7 +463,7 @@
 /* Responsividade */
 @media (max-width: 768px) {
     .servicos-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
     }
 
     .opcoes-grid {
