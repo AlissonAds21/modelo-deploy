@@ -28,3 +28,6 @@ SELECT 'Tabela perfil_usuarios criada com sucesso!' AS status;
 SELECT * FROM perfil_usuarios;
 
 
+
+
+

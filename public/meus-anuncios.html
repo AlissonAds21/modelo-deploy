@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus Anúncios - LOS PATRONES DA REFORMA</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="meus-anuncios.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="logo-container">
+            <div class="logo-box">
+                <span class="logo-text">My Project Web</span>
+            </div>
+        </div>
+        
+        <nav class="top-nav">
+            <a href="#" class="nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="7" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Plano Profissional</span>
+            </a>
+            <a href="meus-anuncios.html" class="nav-item active">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>Meus Anúncios</span>
+            </a>
+            <a href="minhas-mensagens.html" class="nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>Chat</span>
+            </a>
+            <a href="#" class="nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <span>Notificações</span>
+            </a>
+        </nav>
+        
+        <div class="header-right">
+            <div class="user-profile-header">
+                <div class="user-status-text">
+                    <span id="statusText">Status Logado</span>
+                </div>
+                <div class="user-avatar-header">
+                    <img id="userAvatar" src="" alt="Foto de perfil" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2210%22 fill=%22%23ddd%22/%3E%3C/svg%3E';">
+                </div>
+                <div class="user-info-header">
+                    <div class="user-name-header" id="userName">Alisson Ferreira da Costa</div>
+                    <div class="user-perfil-header" id="userPerfil">Perfil Master</div>
+                </div>
+            </div>
+            <button class="btn-anunciar" onclick="location.href='anuncio.html'">Anunciar</button>
+        </div>
+    </header>
+
+    <main class="meus-anuncios-main">
+        <div class="content-wrapper">
+            <div class="main-content">
+                <h1 class="page-title">Meus anúncios</h1>
+                
+                <div class="info-banner">
+                    <p>Antes de desapegar, entenda como aproveitar o melhor da plataforma com segurança.</p>
+                </div>
+
+                <div class="tabs-container">
+                    <button class="tab-btn active" id="tabPublicados" onclick="mostrarTab('publicados')">
+                        Publicados (<span id="countPublicados">1</span>)
+                    </button>
+                    <button class="tab-btn" id="tabPausados" onclick="mostrarTab('pausados')">
+                        Pausados (<span id="countPausados">0</span>)
+                    </button>
+                    <button class="tab-btn" id="tabVendidos" onclick="mostrarTab('vendidos')">
+                        Vendidos (<span id="countVendidos">0</span>)
+                    </button>
+                </div>
+
+                <div class="anuncios-list" id="anunciosList">
+                    <!-- Anúncios serão carregados via JavaScript -->
+                </div>
+            </div>
+
+            <aside class="sidebar" id="sidebar">
+                <div class="stats-box">
+                    <h3>Estatísticas</h3>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statVistas">6</span>
+                        <span class="stat-label">vistas</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statFavoritos">0</span>
+                        <span class="stat-label">favoritos</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="statMensagens">0</span>
+                        <span class="stat-label">mensagens</span>
+                    </div>
+                </div>
+
+                <div class="action-buttons" id="actionButtons">
+                    <button class="btn-action btn-edit" onclick="editarAnuncio()">Editar anúncio</button>
+                    <button class="btn-action btn-pause" onclick="pausarAnuncio()">Pausar anúncio</button>
+                    <button class="btn-action btn-sold" onclick="marcarComoVendido()">Marcar como vendido</button>
+                </div>
+
+                <div class="social-actions">
+                    <button class="social-btn" id="btnFavorito" onclick="toggleFavorito()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                    </button>
+                    <button class="social-btn" onclick="compartilharAnuncio()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="18" cy="5" r="3"></circle>
+                            <circle cx="6" cy="12" r="3"></circle>
+                            <circle cx="18" cy="19" r="3"></circle>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                        </svg>
+                    </button>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <button class="help-button" onclick="abrirAjuda()" title="Ajuda">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+    </button>
+
+    <script src="js/index.js"></script>
+    <script src="js/meus-anuncios.js"></script>
+</body>
+</html>
+
+

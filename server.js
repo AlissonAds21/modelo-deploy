@@ -26,6 +26,30 @@ if (supabaseUrl && supabaseAnonKey) {
   console.warn('⚠️ SUPABASE_URL ou SUPABASE_ANON_KEY não definidos. Upload de imagens desativado.');
 }
 
+// Função auxiliar para construir URL pública do Supabase
+function construirUrlSupabase(fileName) {
+  if (!supabaseUrl) {
+    console.error('❌ SUPABASE_URL não definido');
+    return null;
+  }
+  
+  // Limpar e sanitizar o nome do arquivo
+  const cleanFileName = fileName.trim().replace(/^\/+/, ''); // Remove barras iniciais
+  
+  const baseUrl = supabaseUrl.replace(/\/$/, ''); // Remove barra final se houver
+  // Usar encodeURIComponent para garantir que caracteres especiais sejam tratados corretamente
+  const encodedFileName = encodeURIComponent(cleanFileName);
+  const url = `${baseUrl}/storage/v1/object/public/uploads/${encodedFileName}`;
+  
+  // Validar URL
+  if (!url.startsWith('http')) {
+    console.error('❌ URL construída inválida:', url);
+    return null;
+  }
+  
+  return url;
+}
+
 // === NEON POSTGRESQL ===
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -99,7 +123,8 @@ pool.query(createServicosTable).catch(err => console.error('Erro ao criar tabela
         descricao_anuncio VARCHAR(100) NOT NULL,
         usuario_id INTEGER REFERENCES cadastro_usuario(id) ON DELETE CASCADE,
         created_at TIMESTAMP DEFAULT NOW(),
-        ativo BOOLEAN DEFAULT TRUE
+        ativo BOOLEAN DEFAULT TRUE,
+        vendido BOOLEAN DEFAULT FALSE
       );
     `);
     console.log('✅ Tabela anuncios criada/verificada');
@@ -114,6 +139,18 @@ pool.query(createServicosTable).catch(err => console.error('Erro ao criar tabela
       );
     `);
     console.log('✅ Tabela imagens_anuncios criada/verificada');
+    
+    // Adicionar coluna vendido se não existir
+    await pool.query(`
+      ALTER TABLE anuncios
+      ADD COLUMN IF NOT EXISTS vendido BOOLEAN DEFAULT FALSE;
+    `).catch(err => console.error('Erro ao adicionar coluna vendido:', err));
+    
+    // Adicionar coluna is_principal se não existir
+    await pool.query(`
+      ALTER TABLE imagens_anuncios
+      ADD COLUMN IF NOT EXISTS is_principal BOOLEAN DEFAULT FALSE;
+    `).catch(err => console.error('Erro ao adicionar coluna is_principal:', err));
     
     // 3. Criar índices (dependem das tabelas existirem)
     await pool.query(`
@@ -197,6 +234,20 @@ app.use('/imagensSite', express.static('public/imagensSite'));
 app.use('/imagens', express.static('public/imagens'));
 
 // Garantir que a rota raiz sempre sirva index.html
+// Endpoint de teste para verificar configuração do Supabase
+app.get('/api/test/supabase', (req, res) => {
+  const info = {
+    supabaseUrl: supabaseUrl ? '✅ Configurado' : '❌ Não configurado',
+    supabaseAnonKey: supabaseAnonKey ? '✅ Configurado' : '❌ Não configurado',
+    supabaseClient: supabase ? '✅ Inicializado' : '❌ Não inicializado',
+    urlExemplo: supabaseUrl ? construirUrlSupabase('teste.jpg') : null,
+    urlBase: supabaseUrl || null
+  };
+  
+  console.log('📋 Informações do Supabase:', info);
+  res.json(info);
+});
+
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
 });
@@ -250,18 +301,35 @@ app.post('/api/cadastro', upload.single('fotoPerfil'), async (req, res) => {
         return res.status(500).json({ error: 'Erro ao salvar imagem: ' + error.message });
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(fileName);
+      // Usar função auxiliar para construir URL (mais confiável)
+      fotoPerfilUrl = construirUrlSupabase(fileName);
       
-      fotoPerfilUrl = publicUrl;
-      
-      // Verificar e corrigir URL se necessário (às vezes o Supabase retorna com caminho errado)
-      if (fotoPerfilUrl && fotoPerfilUrl.includes('/upload/s/')) {
-        fotoPerfilUrl = fotoPerfilUrl.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+      if (!fotoPerfilUrl) {
+        // Fallback: tentar usar getPublicUrl do Supabase
+        try {
+          const { data: { publicUrl } } = supabase.storage
+            .from('uploads')
+            .getPublicUrl(fileName);
+          
+          fotoPerfilUrl = publicUrl;
+          
+          // Verificar e corrigir URL se necessário (às vezes o Supabase retorna com caminho errado)
+          if (fotoPerfilUrl && fotoPerfilUrl.includes('/upload/s/')) {
+            fotoPerfilUrl = fotoPerfilUrl.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+          }
+        } catch (urlError) {
+          console.error('❌ Erro ao obter URL pública:', urlError);
+          fotoPerfilUrl = null;
+        }
       }
       
-      console.log('✅ Foto de perfil salva no Supabase:', fotoPerfilUrl);
+      // Validar URL final
+      if (!fotoPerfilUrl || !fotoPerfilUrl.startsWith('http')) {
+        console.error('❌ URL de foto de perfil inválida:', fotoPerfilUrl);
+        fotoPerfilUrl = null;
+      } else {
+        console.log('✅ Foto de perfil salva no Supabase:', fotoPerfilUrl);
+      }
     }
 
     // ✅ (OPCIONAL) UPLOAD LOCAL — DESATIVADO POR PADRÃO
@@ -1037,26 +1105,50 @@ app.post('/api/servicos', verificarToken, upload.array('fotos', 8), async (req, 
           continue; // Continuar com outras imagens mesmo se uma falhar
         }
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('uploads')
-          .getPublicUrl(fileName);
+        // Usar função auxiliar para construir URL (mais confiável)
+        let urlImagem = construirUrlSupabase(fileName);
         
-        let urlImagem = publicUrl;
-        if (urlImagem && urlImagem.includes('/upload/s/')) {
-          urlImagem = urlImagem.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+        if (!urlImagem) {
+          // Fallback: tentar usar getPublicUrl do Supabase
+          try {
+            const { data: { publicUrl } } = supabase.storage
+              .from('uploads')
+              .getPublicUrl(fileName);
+            
+            urlImagem = publicUrl;
+            
+            // Corrigir caminho se necessário
+            if (urlImagem && urlImagem.includes('/upload/s/')) {
+              urlImagem = urlImagem.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+            }
+          } catch (urlError) {
+            console.error('❌ Erro ao obter URL pública:', urlError);
+            continue;
+          }
         }
         
+        // Validar URL final
+        if (!urlImagem || !urlImagem.startsWith('http')) {
+          console.error('❌ URL de imagem inválida:', urlImagem);
+          continue;
+        }
+        
+        console.log('✅ URL de imagem gerada:', urlImagem);
+        
         // Inserir imagem na tabela imagens_anuncios
+        // A primeira imagem (i === 0) é marcada como principal
+        const isPrincipal = i === 0;
         try {
           const resultImagem = await pool.query(
-            `INSERT INTO imagens_anuncios (id_anuncio, url_imagens)
-             VALUES ($1, $2)
+            `INSERT INTO imagens_anuncios (id_anuncio, url_imagens, is_principal)
+             VALUES ($1, $2, $3)
              RETURNING id_imagens`,
-            [idAnuncio, urlImagem]
+            [idAnuncio, urlImagem, isPrincipal]
           );
           imagensSalvas.push({
             id_imagens: resultImagem.rows[0].id_imagens,
-            url_imagens: urlImagem
+            url_imagens: urlImagem,
+            is_principal: isPrincipal
           });
         } catch (imgError) {
           console.error('Erro ao salvar imagem no banco:', imgError);
@@ -1086,6 +1178,353 @@ app.post('/api/servicos', verificarToken, upload.array('fotos', 8), async (req, 
   }
 });
 
+// Buscar anúncios do usuário logado
+app.get('/api/meus-anuncios', verificarToken, async (req, res) => {
+  try {
+    const usuarioId = req.userId;
+    
+    // Buscar todos os anúncios do usuário com suas imagens
+    // Usar COALESCE para evitar erros se as tabelas de estatísticas não existirem
+    const result = await pool.query(`
+      SELECT 
+        a.id_anuncio,
+        a.tipo_servico,
+        a.especialidade,
+        a.valor,
+        a.titulo_anuncio,
+        a.descricao_anuncio,
+        a.ativo,
+        COALESCE(a.vendido, FALSE) as vendido,
+        a.created_at as data_criacao,
+        (
+          SELECT i.url_imagens 
+          FROM imagens_anuncios i 
+          WHERE i.id_anuncio = a.id_anuncio 
+          ORDER BY i.is_principal DESC, i.id_imagens ASC 
+          LIMIT 1
+        ) as imagem,
+        (
+          SELECT i.url_imagens 
+          FROM imagens_anuncios i 
+          WHERE i.id_anuncio = a.id_anuncio 
+          ORDER BY i.is_principal DESC, i.id_imagens ASC 
+          LIMIT 1
+        ) as url_imagens,
+        0 as vistas,
+        0 as favoritos,
+        0 as mensagens
+      FROM anuncios a
+      WHERE a.usuario_id = $1
+      ORDER BY a.created_at DESC
+    `, [usuarioId]);
+    
+    // Corrigir URLs das imagens
+    const anuncios = result.rows.map(anuncio => {
+      let imagemUrl = anuncio.imagem || anuncio.url_imagens;
+      if (imagemUrl) {
+        imagemUrl = imagemUrl.trim();
+        if (imagemUrl.includes('/upload/s/')) {
+          imagemUrl = imagemUrl.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+        }
+        if (!imagemUrl.startsWith('http') && supabaseUrl) {
+          const fileName = imagemUrl.split('/').pop();
+          imagemUrl = construirUrlSupabase(fileName);
+        }
+      }
+      return {
+        ...anuncio,
+        imagem: imagemUrl,
+        url_imagens: imagemUrl,
+        titulo: anuncio.titulo_anuncio
+      };
+    });
+    
+    res.json({ anuncios });
+  } catch (err) {
+    console.error('Erro ao buscar anúncios do usuário:', err);
+    res.status(500).json({ error: 'Erro ao buscar anúncios.' });
+  }
+});
+
+// Atualizar status do anúncio (pausar/reativar)
+app.put('/api/anuncios/:id/status', verificarToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { ativo } = req.body;
+    const usuarioId = req.userId;
+    
+    // Verificar se o anúncio pertence ao usuário
+    const checkAnuncio = await pool.query(
+      'SELECT id_anuncio, usuario_id FROM anuncios WHERE id_anuncio = $1',
+      [id]
+    );
+    
+    if (checkAnuncio.rows.length === 0) {
+      return res.status(404).json({ error: 'Anúncio não encontrado.' });
+    }
+    
+    if (checkAnuncio.rows[0].usuario_id !== usuarioId) {
+      return res.status(403).json({ error: 'Você não tem permissão para modificar este anúncio.' });
+    }
+    
+    // Atualizar status
+    await pool.query(
+      'UPDATE anuncios SET ativo = $1 WHERE id_anuncio = $2',
+      [ativo, id]
+    );
+    
+    // Registrar histórico
+    await registrarHistorico(usuarioId, `Anúncio ${ativo ? 'reativado' : 'pausado'} (ID: ${id})`);
+    
+    res.json({ message: `Anúncio ${ativo ? 'reativado' : 'pausado'} com sucesso!` });
+  } catch (err) {
+    console.error('Erro ao atualizar status do anúncio:', err);
+    res.status(500).json({ error: 'Erro ao atualizar status do anúncio.' });
+  }
+});
+
+// Buscar detalhes de um anúncio por ID (público ou autenticado)
+app.get('/api/anuncios/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Buscar anúncio com todas as informações
+    let result;
+    try {
+      // Tentar primeiro com "fotoPerfil" (com aspas para case-sensitive)
+      result = await pool.query(`
+        SELECT 
+          a.id_anuncio,
+          a.tipo_servico,
+          a.especialidade,
+          a.valor,
+          a.titulo_anuncio,
+          a.descricao_anuncio,
+          a.ativo,
+          COALESCE(a.vendido, FALSE) as vendido,
+          a.created_at as data_criacao,
+          a.usuario_id,
+          u.nome as vendedor_nome,
+          u."fotoPerfil" as vendedor_foto,
+          u.fotoperfil as vendedor_foto_alt,
+          u.perfil as vendedor_perfil,
+          e.cidade as vendedor_cidade
+        FROM anuncios a
+        LEFT JOIN cadastro_usuario u ON a.usuario_id = u.id
+        LEFT JOIN endereco e ON u.endereco_id = e.id
+        WHERE a.id_anuncio = $1
+      `, [id]);
+    } catch (fotoError) {
+      // Se falhar por causa da coluna fotoPerfil, tentar com fotoperfil (minúsculo)
+      if (fotoError.message && fotoError.message.includes('fotoPerfil')) {
+        console.warn('⚠️ Coluna fotoPerfil não encontrada, tentando fotoperfil:', fotoError.message);
+        try {
+          result = await pool.query(`
+            SELECT 
+              a.id_anuncio,
+              a.tipo_servico,
+              a.especialidade,
+              a.valor,
+              a.titulo_anuncio,
+              a.descricao_anuncio,
+              a.ativo,
+              COALESCE(a.vendido, FALSE) as vendido,
+              a.created_at as data_criacao,
+              a.usuario_id,
+              u.nome as vendedor_nome,
+              u.fotoperfil as vendedor_foto,
+              u.fotoperfil as vendedor_foto_alt,
+              u.perfil as vendedor_perfil,
+              e.cidade as vendedor_cidade
+            FROM anuncios a
+            LEFT JOIN cadastro_usuario u ON a.usuario_id = u.id
+            LEFT JOIN endereco e ON u.endereco_id = e.id
+            WHERE a.id_anuncio = $1
+          `, [id]);
+        } catch (joinError) {
+          // Se ainda falhar (pode ser por causa do endereco), buscar sem endereço
+          console.warn('⚠️ Erro no JOIN com endereco, buscando sem cidade:', joinError.message);
+          result = await pool.query(`
+            SELECT 
+              a.id_anuncio,
+              a.tipo_servico,
+              a.especialidade,
+              a.valor,
+              a.titulo_anuncio,
+              a.descricao_anuncio,
+              a.ativo,
+              COALESCE(a.vendido, FALSE) as vendido,
+              a.created_at as data_criacao,
+              a.usuario_id,
+              u.nome as vendedor_nome,
+              u.fotoperfil as vendedor_foto,
+              u.fotoperfil as vendedor_foto_alt,
+              u.perfil as vendedor_perfil,
+              NULL as vendedor_cidade
+            FROM anuncios a
+            LEFT JOIN cadastro_usuario u ON a.usuario_id = u.id
+            WHERE a.id_anuncio = $1
+          `, [id]);
+        }
+      } else {
+        // Se o erro não for relacionado a fotoPerfil, tentar sem endereço
+        console.warn('⚠️ Erro no JOIN com endereco, buscando sem cidade:', fotoError.message);
+        try {
+          result = await pool.query(`
+            SELECT 
+              a.id_anuncio,
+              a.tipo_servico,
+              a.especialidade,
+              a.valor,
+              a.titulo_anuncio,
+              a.descricao_anuncio,
+              a.ativo,
+              COALESCE(a.vendido, FALSE) as vendido,
+              a.created_at as data_criacao,
+              a.usuario_id,
+              u.nome as vendedor_nome,
+              u.fotoperfil as vendedor_foto,
+              u.fotoperfil as vendedor_foto_alt,
+              u.perfil as vendedor_perfil,
+              NULL as vendedor_cidade
+            FROM anuncios a
+            LEFT JOIN cadastro_usuario u ON a.usuario_id = u.id
+            WHERE a.id_anuncio = $1
+          `, [id]);
+        } catch (finalError) {
+          // Última tentativa: buscar apenas dados básicos do anúncio
+          console.warn('⚠️ Erro ao buscar dados do usuário, buscando apenas anúncio:', finalError.message);
+          result = await pool.query(`
+            SELECT 
+              a.id_anuncio,
+              a.tipo_servico,
+              a.especialidade,
+              a.valor,
+              a.titulo_anuncio,
+              a.descricao_anuncio,
+              a.ativo,
+              COALESCE(a.vendido, FALSE) as vendido,
+              a.created_at as data_criacao,
+              a.usuario_id,
+              NULL as vendedor_nome,
+              NULL as vendedor_foto,
+              NULL as vendedor_foto_alt,
+              NULL as vendedor_perfil,
+              NULL as vendedor_cidade
+            FROM anuncios a
+            WHERE a.id_anuncio = $1
+          `, [id]);
+        }
+      }
+    }
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Anúncio não encontrado.' });
+    }
+    
+    const anuncio = result.rows[0];
+    
+    // Buscar todas as imagens do anúncio (incluindo is_principal)
+    let imagensResult;
+    try {
+      imagensResult = await pool.query(`
+        SELECT id_imagens, url_imagens, created_at, COALESCE(is_principal, FALSE) as is_principal
+        FROM imagens_anuncios
+        WHERE id_anuncio = $1
+        ORDER BY is_principal DESC, id_imagens ASC
+      `, [id]);
+    } catch (colError) {
+      // Se a coluna is_principal não existir, buscar sem ela
+      console.warn('⚠️ Coluna is_principal não encontrada, buscando sem ela:', colError.message);
+      imagensResult = await pool.query(`
+        SELECT id_imagens, url_imagens, created_at
+        FROM imagens_anuncios
+        WHERE id_anuncio = $1
+        ORDER BY id_imagens ASC
+      `, [id]);
+    }
+    
+    // Corrigir URLs das imagens
+    const imagens = imagensResult.rows.map(img => {
+      let imagemUrl = img.url_imagens;
+      if (imagemUrl) {
+        imagemUrl = imagemUrl.trim();
+        if (imagemUrl.includes('/upload/s/')) {
+          imagemUrl = imagemUrl.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+        }
+        if (!imagemUrl.startsWith('http') && supabaseUrl) {
+          const fileName = imagemUrl.split('/').pop();
+          imagemUrl = construirUrlSupabase(fileName);
+        }
+      }
+      return {
+        id_imagens: img.id_imagens,
+        url_imagens: imagemUrl,
+        created_at: img.created_at,
+        is_principal: img.is_principal !== undefined ? img.is_principal : (img.id_imagens === imagensResult.rows[0]?.id_imagens)
+      };
+    });
+    
+    // Adicionar cidade apenas se o anunciante for master ou profissional
+    if (anuncio.vendedor_perfil !== 1 && anuncio.vendedor_perfil !== 3) {
+      anuncio.vendedor_cidade = null; // Não mostrar cidade para clientes
+    }
+    
+    res.json({
+      ...anuncio,
+      imagens: imagens,
+      imagem_principal: imagens.length > 0 ? imagens[0].url_imagens : null
+    });
+  } catch (err) {
+    console.error('❌ Erro ao buscar anúncio:', err);
+    console.error('❌ Mensagem do erro:', err.message);
+    if (err.stack) {
+      console.error('❌ Stack trace:', err.stack);
+    }
+    res.status(500).json({ 
+      error: 'Erro ao buscar anúncio.',
+      message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
+// Marcar anúncio como vendido
+app.put('/api/anuncios/:id/vendido', verificarToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { vendido } = req.body;
+    const usuarioId = req.userId;
+    
+    // Verificar se o anúncio pertence ao usuário
+    const checkAnuncio = await pool.query(
+      'SELECT id_anuncio, usuario_id FROM anuncios WHERE id_anuncio = $1',
+      [id]
+    );
+    
+    if (checkAnuncio.rows.length === 0) {
+      return res.status(404).json({ error: 'Anúncio não encontrado.' });
+    }
+    
+    if (checkAnuncio.rows[0].usuario_id !== usuarioId) {
+      return res.status(403).json({ error: 'Você não tem permissão para modificar este anúncio.' });
+    }
+    
+    // Atualizar status (marcar como vendido e desativar)
+    await pool.query(
+      'UPDATE anuncios SET vendido = $1, ativo = FALSE WHERE id_anuncio = $2',
+      [vendido, id]
+    );
+    
+    // Registrar histórico
+    await registrarHistorico(usuarioId, `Anúncio marcado como vendido (ID: ${id})`);
+    
+    res.json({ message: 'Anúncio marcado como vendido com sucesso!' });
+  } catch (err) {
+    console.error('Erro ao marcar anúncio como vendido:', err);
+    res.status(500).json({ error: 'Erro ao marcar anúncio como vendido.' });
+  }
+});
+
 // Buscar últimos 8 produtos/anúncios para exibir na seção "Últimas Postagens Atualizadas"
 app.get('/api/produtos/ultimos', async (req, res) => {
   try {
@@ -1094,23 +1533,68 @@ app.get('/api/produtos/ultimos', async (req, res) => {
     // Buscar últimos anúncios (prioridade - LIFO por id_imagens)
     try {
       const anunciosResult = await pool.query(`
-        SELECT 
-          i.id_imagens,
-          i.url_imagens as imagem,
-          a.titulo_anuncio as titulo,
-          a.especialidade as marca,
-          a.valor as valor_venda,
-          a.id_anuncio,
-          'anuncio' as tipo,
-          i.created_at
-        FROM imagens_anuncios i
-        JOIN anuncios a ON i.id_anuncio = a.id_anuncio
-        WHERE a.ativo = TRUE
-        ORDER BY i.id_imagens DESC
-        LIMIT 8
+      SELECT DISTINCT ON (a.id_anuncio)
+        i.id_imagens,
+        i.url_imagens as imagem,
+        a.titulo_anuncio as titulo,
+        a.especialidade as marca,
+        a.valor as valor_venda,
+        a.id_anuncio,
+        'anuncio' as tipo,
+        a.created_at,
+        a.usuario_id,
+        u.perfil as usuario_perfil,
+        e.cidade as usuario_cidade
+      FROM anuncios a
+      LEFT JOIN imagens_anuncios i ON i.id_anuncio = a.id_anuncio AND (i.is_principal = TRUE OR i.id_imagens = (
+        SELECT MIN(id_imagens) FROM imagens_anuncios WHERE id_anuncio = a.id_anuncio
+      ))
+      LEFT JOIN cadastro_usuario u ON a.usuario_id = u.id
+      LEFT JOIN endereco e ON u.endereco_id = e.id
+      WHERE a.ativo = TRUE
+      ORDER BY a.id_anuncio DESC, i.is_principal DESC, i.id_imagens ASC
+      LIMIT 8
       `);
       
       for (const anuncio of anunciosResult.rows) {
+        // Garantir que a URL da imagem está correta
+        let imagemUrl = anuncio.imagem;
+        if (imagemUrl) {
+          // Limpar espaços e caracteres especiais
+          imagemUrl = imagemUrl.trim();
+          
+          // Se a URL contém /upload/s/, substituir pelo caminho correto
+          if (imagemUrl.includes('/upload/s/')) {
+            imagemUrl = imagemUrl.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+          }
+          
+          // Se a URL não começa com http, tentar extrair o nome do arquivo e reconstruir
+          if (!imagemUrl.startsWith('http')) {
+            // Tentar extrair o nome do arquivo da URL
+            const fileName = imagemUrl.split('/').pop();
+            if (fileName && supabaseUrl) {
+              imagemUrl = construirUrlSupabase(fileName);
+              console.log('🔧 URL de anúncio corrigida:', imagemUrl);
+            } else {
+              console.warn('⚠️ URL de imagem de anúncio inválida:', anuncio.imagem);
+              imagemUrl = null;
+            }
+          }
+          
+          // Validar URL final
+          if (imagemUrl && !imagemUrl.startsWith('http')) {
+            console.warn('⚠️ URL de imagem de anúncio ainda inválida após correção:', imagemUrl);
+            imagemUrl = null;
+          }
+          
+          // Log detalhado
+          console.log(`📸 Anúncio "${anuncio.titulo}":`);
+          console.log(`   URL original: ${anuncio.imagem}`);
+          console.log(`   URL final: ${imagemUrl || 'NULL'}`);
+        } else {
+          console.warn(`⚠️ Anúncio "${anuncio.titulo}" sem URL de imagem`);
+        }
+        
         items.push({
           id: anuncio.id_anuncio,
           codigo_produto: anuncio.id_anuncio,
@@ -1118,11 +1602,18 @@ app.get('/api/produtos/ultimos', async (req, res) => {
           titulo: anuncio.titulo,
           marca: anuncio.marca,
           valor_venda: parseFloat(anuncio.valor_venda) || 0,
-          imagem: anuncio.imagem,
+          id_anuncio: anuncio.id_anuncio,
+          tipo: 'anuncio',
+          created_at: anuncio.created_at,
+          usuario_perfil: anuncio.usuario_perfil,
+          usuario_cidade: (anuncio.usuario_perfil === 1 || anuncio.usuario_perfil === 3) ? anuncio.usuario_cidade : null,
+          imagem: imagemUrl,
           tipo: 'anuncio',
           created_at: anuncio.created_at
         });
       }
+      
+      console.log(`✅ Total de ${anunciosResult.rows.length} anúncios encontrados`);
     } catch (anuncioError) {
       console.warn('Erro ao buscar anúncios:', anuncioError.message);
     }
@@ -1155,6 +1646,20 @@ app.get('/api/produtos/ultimos', async (req, res) => {
               [produto.codigo_produto]
             );
             
+            // Garantir que a URL da imagem está correta
+            let imagemUrl = imgResult.rows.length > 0 ? imgResult.rows[0].url_imagem : null;
+            if (imagemUrl) {
+              // Se a URL contém /upload/s/, substituir pelo caminho correto
+              if (imagemUrl.includes('/upload/s/')) {
+                imagemUrl = imagemUrl.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+              }
+              // Garantir que começa com http
+              if (!imagemUrl.startsWith('http')) {
+                console.warn('⚠️ URL de imagem de produto inválida:', imagemUrl);
+                imagemUrl = null;
+              }
+            }
+            
             items.push({
               id: produto.codigo_produto,
               codigo_produto: produto.codigo_produto,
@@ -1162,7 +1667,7 @@ app.get('/api/produtos/ultimos', async (req, res) => {
               titulo: produto.titulo,
               marca: produto.marca,
               valor_venda: produto.valor_venda,
-              imagem: imgResult.rows.length > 0 ? imgResult.rows[0].url_imagem : null,
+              imagem: imagemUrl,
               tipo: 'produto',
               created_at: null
             });
@@ -1213,6 +1718,20 @@ app.get('/api/produtos/ultimos', async (req, res) => {
             [servico.id_servico]
           );
           
+          // Garantir que a URL da imagem está correta
+          let imagemUrl = imgResult.rows.length > 0 ? imgResult.rows[0].url_imagem : null;
+          if (imagemUrl) {
+            // Se a URL contém /upload/s/, substituir pelo caminho correto
+            if (imagemUrl.includes('/upload/s/')) {
+              imagemUrl = imagemUrl.replace('/upload/s/', '/storage/v1/object/public/uploads/');
+            }
+            // Garantir que começa com http
+            if (!imagemUrl.startsWith('http')) {
+              console.warn('⚠️ URL de imagem de serviço inválida:', imagemUrl);
+              imagemUrl = null;
+            }
+          }
+          
           items.push({
             id: servico.id_servico,
             codigo_produto: servico.id_servico,
@@ -1220,7 +1739,7 @@ app.get('/api/produtos/ultimos', async (req, res) => {
             titulo: servico.titulo,
             marca: servico.tipo_servico,
             valor_venda: servico.valor_venda,
-            imagem: imgResult.rows.length > 0 ? imgResult.rows[0].url_imagem : null,
+            imagem: imagemUrl,
             tipo: 'servico',
             created_at: servico.created_at
           });
@@ -1243,7 +1762,7 @@ app.get('/api/produtos/ultimos', async (req, res) => {
     }
     
     // Ordenar por data de criação (mais recente primeiro) e pegar os 8 primeiros
-    items.sort((a, b) => {
+    const itemsOrdenados = items.sort((a, b) => {
       if (a.created_at && b.created_at) {
         return new Date(b.created_at) - new Date(a.created_at);
       }
@@ -1251,9 +1770,17 @@ app.get('/api/produtos/ultimos', async (req, res) => {
       if (b.created_at) return 1;
       // Se não tiver data, ordenar por ID
       return (b.id || 0) - (a.id || 0);
+    }).slice(0, 8);
+    
+    console.log(`📤 Retornando ${itemsOrdenados.length} itens para a página inicial`);
+    itemsOrdenados.forEach((item, index) => {
+      console.log(`  ${index + 1}. ${item.titulo} (${item.tipo}) - Imagem: ${item.imagem ? 'Sim' : 'Não'}`);
+      if (item.imagem) {
+        console.log(`     URL: ${item.imagem}`);
+      }
     });
     
-    res.json(items.slice(0, 8));
+    res.json(itemsOrdenados);
   } catch (err) {
     console.error('Erro ao buscar últimos produtos/serviços:', err);
     res.status(500).json({ error: 'Erro ao buscar últimos produtos/serviços.' });

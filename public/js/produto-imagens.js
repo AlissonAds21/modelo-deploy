@@ -273,7 +273,7 @@ function verificarLoginERedirecionar() {
   localStorage.setItem('produtoCodigoParaImagens', codigo);
   
   // Redirecionar para página de gerenciamento
-  window.location.href = `addserviços.html?codigo=${codigo}`;
+  window.location.href = `add-servicos.html?codigo=${codigo}`;
 }
 
 // Verificar se voltou da página de gerenciamento e recarregar imagens

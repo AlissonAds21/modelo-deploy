@@ -381,7 +381,7 @@ function inicializarFotos() {
     
     for (let i = 0; i < 8; i++) {
         const slot = document.createElement('div');
-        slot.className = 'foto-slot';
+        slot.className = i === 0 ? 'foto-slot principal-slot' : 'foto-slot';
         slot.innerHTML = `
             <div class="upload-icon">↑</div>
             <input type="file" accept="image/*" onchange="handleFotoUpload(event, ${i})" />
@@ -416,10 +416,15 @@ window.handleFotoUpload = function(event, index) {
     reader.onload = (e) => {
         const slot = event.target.closest('.foto-slot');
         slot.classList.add('has-image');
+        // Manter classe principal-slot se for o primeiro slot
+        const isPrincipal = index === 0;
         slot.innerHTML = `
             <img src="${e.target.result}" alt="Foto ${index + 1}" />
             <button class="remove-btn" onclick="removerFoto(${index})" title="Remover foto">×</button>
         `;
+        if (isPrincipal) {
+            slot.classList.add('principal-slot');
+        }
         
         // Armazenar arquivo
         dadosAnuncio.fotos[index] = file;
@@ -434,6 +439,10 @@ window.removerFoto = function(index) {
     
     const slot = fotosGrid.children[index];
     slot.classList.remove('has-image');
+    // Restaurar classe principal-slot se for o primeiro slot
+    if (index === 0) {
+        slot.classList.add('principal-slot');
+    }
     slot.innerHTML = `
         <div class="upload-icon">↑</div>
         <input type="file" accept="image/*" onchange="handleFotoUpload(event, ${index})" />

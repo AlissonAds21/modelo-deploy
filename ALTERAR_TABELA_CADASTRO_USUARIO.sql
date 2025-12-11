@@ -49,3 +49,6 @@ WHERE table_name = 'cadastro_usuario'
 ORDER BY ordinal_position;
 
 
+
+
+
