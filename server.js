@@ -1544,7 +1544,8 @@ app.get('/api/produtos/ultimos', async (req, res) => {
         a.created_at,
         a.usuario_id,
         u.perfil as usuario_perfil,
-        e.cidade as usuario_cidade
+        e.cidade as usuario_cidade,
+        e.bairro as usuario_bairro
       FROM anuncios a
       LEFT JOIN imagens_anuncios i ON i.id_anuncio = a.id_anuncio AND (i.is_principal = TRUE OR i.id_imagens = (
         SELECT MIN(id_imagens) FROM imagens_anuncios WHERE id_anuncio = a.id_anuncio
