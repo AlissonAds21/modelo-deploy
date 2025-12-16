@@ -84,6 +84,42 @@ setInterval(() => {
   verificarSessaoExpirada();
 }, 5 * 60 * 1000);
 
+// Função para controlar visibilidade do link Dashboard
+function controlarVisibilidadeDashboard() {
+  const dashboardMenuItem = document.getElementById('dashboard-menu-item');
+  if (!dashboardMenuItem) return;
+  
+  // Verificar se sessão expirou
+  if (verificarSessaoExpirada()) {
+    dashboardMenuItem.style.display = 'none';
+    return;
+  }
+  
+  const usuarioStr = localStorage.getItem('usuario');
+  if (!usuarioStr) {
+    // Se não estiver logado, ocultar Dashboard
+    dashboardMenuItem.style.display = 'none';
+    return;
+  }
+  
+  try {
+    const usuario = JSON.parse(usuarioStr);
+    const perfilId = usuario.perfil || 2; // 1=Master, 2=Cliente, 3=Profissional
+    
+    // Mostrar Dashboard apenas para Master (1) ou Profissional (3)
+    if (perfilId === 1 || perfilId === 3) {
+      dashboardMenuItem.style.display = 'list-item'; // ou 'block' dependendo do CSS
+    } else {
+      // Cliente (2) - ocultar completamente
+      dashboardMenuItem.style.display = 'none';
+    }
+  } catch (err) {
+    console.error('Erro ao verificar perfil para Dashboard:', err);
+    // Em caso de erro, ocultar por segurança
+    dashboardMenuItem.style.display = 'none';
+  }
+}
+
 // Função para verificar se o usuário está logado
 function checkLoginStatus() {
   // Verificar se sessão expirou
@@ -97,6 +133,8 @@ function checkLoginStatus() {
       <button onclick="location.href='login.html'">Entrar</button>
       <button onclick="location.href='cadastro.html'">Cadastrar</button>
     `;
+    // Ocultar Dashboard se não estiver logado
+    controlarVisibilidadeDashboard();
     return;
   }
 
@@ -202,6 +240,8 @@ function checkLoginStatus() {
         </div>
       </div>
     `;
+    // Atualizar visibilidade do Dashboard após verificar login
+    controlarVisibilidadeDashboard();
   }).catch(function(err) {
     console.warn('Erro ao buscar ampulheta:', err);
     // Em caso de erro ao obter ampulheta, renderizar interface sem a ampulheta
@@ -253,6 +293,8 @@ function checkLoginStatus() {
         </div>
       </div>
     `;
+    // Atualizar visibilidade do Dashboard após verificar login
+    controlarVisibilidadeDashboard();
   });
   } catch (err) {
     console.error('Erro ao processar usuário:', err);
@@ -260,12 +302,16 @@ function checkLoginStatus() {
       <button onclick="location.href='login.html'">Entrar</button>
       <button onclick="location.href='cadastro.html'">Cadastrar</button>
     `;
+    // Ocultar Dashboard em caso de erro
+    controlarVisibilidadeDashboard();
   }
 }
   
   // Função para sair (limpar localStorage e recarregar)
   function logout() {
     limparSessao();
+    // Ocultar Dashboard ao fazer logout
+    controlarVisibilidadeDashboard();
     location.reload();
   }
 
@@ -332,19 +378,34 @@ async function carregarUltimasPostagens() {
         // Formatar data
         const dataFormatada = produto.created_at ? formatarDataCard(produto.created_at) : '';
         
-        // Cidade (apenas se for master ou profissional)
-        const cidadeHTML = (produto.usuario_perfil === 1 || produto.usuario_perfil === 3) && produto.usuario_cidade 
-          ? `<p class="service-card-city" style="font-size: 11px; color: #888; margin: 2px 0;">📍 ${produto.usuario_cidade}</p>` 
+        // Formatar valor
+        const valorFormatado = produto.valor_venda > 0 
+          ? `R$ ${produto.valor_venda.toFixed(2).replace('.', ',')}` 
           : '';
+        
+        // Localização (cidade e bairro) - apenas se for master ou profissional
+        let localizacaoHTML = '';
+        if ((produto.usuario_perfil === 1 || produto.usuario_perfil === 3) && produto.usuario_cidade) {
+          const cidade = produto.usuario_cidade || '';
+          const bairro = produto.usuario_bairro || '';
+          const localizacao = bairro ? `${cidade} – ${bairro}` : cidade;
+          localizacaoHTML = `<span class="service-card-location">📍 ${localizacao}</span>`;
+        }
         
         card.innerHTML = `
           <div class="service-card-content">
             ${imagemHTML}
-            <h4 class="service-card-title">${titulo}</h4>
-            ${produto.marca ? `<p class="service-card-marca" style="font-size: 12px; color: #666; margin: 4px 0;">${produto.marca}</p>` : ''}
-            ${produto.valor_venda > 0 ? `<p class="service-card-price">R$ ${produto.valor_venda.toFixed(2).replace('.', ',')}</p>` : ''}
-            ${dataFormatada ? `<p class="service-card-date" style="font-size: 11px; color: #888; margin: 2px 0;">📅 ${dataFormatada}</p>` : ''}
-            ${cidadeHTML}
+            <div class="service-card-info">
+              <div class="service-card-left">
+                <h4 class="service-card-title">${titulo}</h4>
+                ${produto.marca ? `<p class="service-card-subtitle">${produto.marca}</p>` : ''}
+                ${valorFormatado ? `<p class="service-card-price">${valorFormatado}</p>` : ''}
+                <div class="service-card-date-row">
+                  ${dataFormatada ? `<span class="service-card-date">📅 ${dataFormatada}</span>` : ''}
+                  ${localizacaoHTML}
+                </div>
+              </div>
+            </div>
           </div>
         `;
         // Adicionar link se for produto
@@ -427,10 +488,11 @@ async function carregarUltimasPostagens() {
     }
   }
 }
-  
+
   // Executa ao carregar a página
   document.addEventListener('DOMContentLoaded', () => {
     checkLoginStatus();
+    controlarVisibilidadeDashboard(); // Controlar visibilidade do Dashboard
     carregarImagemProduto1();
     inicializarFavoritos();
     carregarUltimasPostagens();
